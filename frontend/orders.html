@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>GameVault — Orders</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="styles.css"/>
+  <script src="config.js"></script>
+  <script src="auth.js"></script>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">Game<span>Vault</span></div>
+  <div class="nav-links">
+    <a class="nav-link" data-page="index.html" href="index.html">🎮 Store</a>
+    <a class="nav-link" data-page="cart.html"   href="cart.html">🛒 Cart</a>
+    <a class="nav-link" data-page="orders.html" href="orders.html">📦 Orders</a>
+    <a class="nav-link admin-link" data-page="admin.html" href="admin.html">⚙️ Admin</a>
+  </div>
+</nav>
+
+<main>
+  <div class="page-header">
+    <div>
+      <div class="page-title">📦 My Orders</div>
+      <div class="page-sub" id="orders-sub">Loading your orders…</div>
+    </div>
+  </div>
+  <div id="orders-content"><div class="spinner"></div></div>
+</main>
+
+<div class="toast" id="toast"></div>
+<script src="common.js"></script>
+<script>
+const USER_ID = getOrCreateUserId();
+
+async function loadOrders() {
+  const c = document.getElementById('orders-content');
+  c.innerHTML = '<div class="spinner"></div>';
+  const data = await apiFetch(`/orders?user_id=${USER_ID}`);
+  if (!data) {
+    c.innerHTML = '<div class="empty"><div class="empty-icon">📦</div><div class="empty-text">Could not load orders.</div></div>';
+    return;
+  }
+  const orders = data.orders || [];
+  document.getElementById('orders-sub').textContent = `${orders.length} order${orders.length !== 1 ? 's' : ''}`;
+  if (!orders.length) {
+    c.innerHTML = '<div class="empty"><div class="empty-icon">📦</div><div class="empty-text">No orders yet. <a href="index.html" style="color:var(--accent)">Start shopping →</a></div></div>';
+    return;
+  }
+  orders.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  c.innerHTML = `<div class="orders-list">
+    ${orders.map(o => {
+      const items   = o.items || [];
+      const total   = parseFloat(o.total || 0);
+      const date    = o.created_at ? new Date(o.created_at).toLocaleString() : '—';
+      const shortId = (o.order_id || '').slice(0, 8).toUpperCase();
+      const status  = o.status || 'PLACED';
+      return `
+        <div class="order-card" id="order-card-${o.order_id}">
+          <div class="order-card-header">
+            <div class="order-id">Order <span>#${shortId}</span></div>
+            <div class="order-meta">
+              <span class="order-date">${date}</span>
+              <span class="order-status ${status}">${status}</span>
+            </div>
+          </div>
+          <div class="order-items-list">
+            ${items.map(i => `
+              <div class="order-item-row">
+                <span class="order-item-name">${i.title}<span class="order-item-qty"> ×${i.quantity || 1}</span></span>
+                <span class="order-item-price">$${(parseFloat(i.price) * (i.quantity || 1)).toFixed(2)}</span>
+              </div>`).join('')}
+          </div>
+          <div class="order-card-footer">
+            <div>
+              <div class="order-total-label">Order Total</div>
+              <div class="order-total-value">$${total.toFixed(2)}</div>
+            </div>
+            <button class="cancel-order-btn" onclick="cancelOrder('${o.order_id}', '${shortId}', this)">
+              🗑️ Cancel Order
+            </button>
+          </div>
+        </div>`;
+    }).join('')}
+  </div>`;
+}
+
+async function cancelOrder(orderId, shortId, btnEl) {
+  if (!confirm(`Cancel order #${shortId}? This will permanently delete the order.`)) return;
+  btnEl.disabled = true;
+  btnEl.textContent = 'Cancelling…';
+  try {
+    const res = await fetch(`${CONFIG.API_URL}/orders/${orderId}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (res.ok) {
+      const card = document.getElementById(`order-card-${orderId}`);
+      if (card) {
+        card.style.transition = 'opacity 0.3s';
+        card.style.opacity = '0';
+        setTimeout(() => {
+          card.remove();
+          const remaining = document.querySelectorAll('.order-card').length;
+          const sub = document.getElementById('orders-sub');
+          if (sub) sub.textContent = `${remaining} order${remaining !== 1 ? 's' : ''}`;
+          if (remaining === 0) {
+            document.getElementById('orders-content').innerHTML =
+              '<div class="empty"><div class="empty-icon">📦</div><div class="empty-text">No orders yet. <a href="index.html" style="color:var(--accent)">Start shopping →</a></div></div>';
+          }
+        }, 300);
+      }
+      toast('🗑️ Order cancelled and deleted');
+    } else {
+      const errBody = await res.json().catch(() => ({}));
+      toast(`Failed to cancel: ${errBody.error || res.status}`, 'error');
+      btnEl.disabled = false;
+      btnEl.textContent = '🗑️ Cancel Order';
+    }
+  } catch(e) {
+    toast('Error: ' + e.message, 'error');
+    btnEl.disabled = false;
+    btnEl.textContent = '🗑️ Cancel Order';
+  }
+}
+
+loadOrders();
+</script>
+</body>
+</html>

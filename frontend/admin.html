@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>GameVault — Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="styles.css"/>
+  <script src="config.js"></script>
+  <script src="auth.js"></script>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">Game<span>Vault</span></div>
+  <div class="nav-links">
+    <a class="nav-link" data-page="index.html" href="index.html">🎮 Store</a>
+    <a class="nav-link" data-page="cart.html"   href="cart.html">🛒 Cart</a>
+    <a class="nav-link" data-page="orders.html" href="orders.html">📦 Orders</a>
+    <a class="nav-link admin-link" data-page="admin.html" href="admin.html">⚙️ Admin</a>
+  </div>
+</nav>
+
+<main>
+  <div class="admin-header">
+    <div>
+      <div class="page-title">⚙️ Admin Dashboard</div>
+      <div class="page-sub">Manage your game catalogue</div>
+    </div>
+    <button class="add-game-btn" onclick="openAddModal()">+ Add New Game</button>
+  </div>
+  <div id="admin-content"><div class="spinner"></div></div>
+</main>
+
+<!-- ── ADD / EDIT MODAL ── -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModalOnOverlay(event)">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">Add New Game</div>
+    <input type="hidden" id="edit-game-id"/>
+    <div class="form-group">
+      <label>Title *</label>
+      <input type="text" id="f-title" placeholder="e.g. Cyberpunk 2077"/>
+    </div>
+    <div class="form-group">
+      <label>Description *</label>
+      <textarea id="f-desc" placeholder="Short description of the game…"></textarea>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Price ($) *</label>
+        <input type="number" id="f-price" placeholder="29.99" step="0.01" min="0"/>
+      </div>
+      <div class="form-group">
+        <label>Stock *</label>
+        <input type="number" id="f-stock" placeholder="100" min="0"/>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Genre *</label>
+        <input type="text" id="f-genre" placeholder="e.g. RPG, FPS, Sports"/>
+      </div>
+      <div class="form-group">
+        <label>Platform *</label>
+        <input type="text" id="f-platform" placeholder="e.g. PC, PS5, Xbox"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Rating</label>
+      <select class="form-select" id="f-rating">
+        <option value="E">E — Everyone</option>
+        <option value="E10+">E10+ — Everyone 10+</option>
+        <option value="T">T — Teen</option>
+        <option value="M">M — Mature 17+</option>
+        <option value="AO">AO — Adults Only</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Game Image</label>
+      <div class="img-upload-area">
+        <input type="file" id="f-image" accept="image/*" onchange="previewImage(event)"/>
+        <div class="upload-icon">🖼️</div>
+        <div class="upload-text">Drop image here or <span>browse</span><br/><small style="color:var(--muted);font-size:11px">JPG, PNG, WebP — uploaded to S3</small></div>
+      </div>
+      <img class="img-preview" id="img-preview" alt="Preview"/>
+      <div class="current-img-label" id="current-img-label"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" id="modal-save-btn" onclick="saveGame()">Save Game</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="common.js"></script>
+<script>
+async function loadAdmin() {
+  const c = document.getElementById('admin-content');
+  c.innerHTML = '<div class="spinner"></div>';
+  const data = await apiFetch('/games');
+  if (!data) return;
+  renderGames(data.games || [], c);
+}
+
+function renderGames(games, container) {
+  if (!games.length) {
+    container.innerHTML = '<div class="empty"><div class="empty-icon">🕹️</div><div class="empty-text">No games found.</div></div>';
+    return;
+  }
+  container.innerHTML = '<div class="game-grid">' +
+    games.map(g => `
+      <div class="game-card">
+        ${gameImageHTML(g)}
+        <div class="game-body">
+          <div class="game-title">${g.title}</div>
+          <div class="game-genre">${g.genre || ''} · ${g.platform || ''}</div>
+          <div class="game-footer">
+            <div class="game-price">$${parseFloat(g.price).toFixed(2)}</div>
+          </div>
+        </div>
+        <div class="admin-card-actions">
+          <button class="edit-btn" onclick='openEditModal(${JSON.stringify(g)})'>✏️ Edit</button>
+          <button class="del-btn"  onclick="deleteGame('${g.game_id}','${g.title.replace(/'/g,"\\'")}')">🗑️ Delete</button>
+        </div>
+      </div>`).join('') + '</div>';
+}
+
+async function deleteGame(gameId, title) {
+  if (!confirm(`Delete "${title}"? This cannot be undone.`)) return;
+  const data = await apiFetch(`/games/${gameId}`, { method: 'DELETE' });
+  if (data) { toast(`🗑️ "${title}" deleted`); loadAdmin(); }
+  else toast('Failed to delete game', 'error');
+}
+
+function openAddModal() {
+  document.getElementById('modal-title').textContent    = '+ Add New Game';
+  document.getElementById('modal-save-btn').textContent = 'Add Game';
+  document.getElementById('edit-game-id').value = '';
+  ['f-title','f-desc','f-price','f-stock','f-genre','f-platform'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f-rating').value = 'E';
+  document.getElementById('f-image').value  = '';
+  document.getElementById('img-preview').classList.remove('visible');
+  document.getElementById('current-img-label').textContent = '';
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function openEditModal(game) {
+  document.getElementById('modal-title').textContent    = '✏️ Edit Game';
+  document.getElementById('modal-save-btn').textContent = 'Save Changes';
+  document.getElementById('edit-game-id').value  = game.game_id;
+  document.getElementById('f-title').value       = game.title       || '';
+  document.getElementById('f-desc').value        = game.description || '';
+  document.getElementById('f-price').value       = game.price       || '';
+  document.getElementById('f-stock').value       = game.stock       || '';
+  document.getElementById('f-genre').value       = game.genre       || '';
+  document.getElementById('f-platform').value    = game.platform    || '';
+  document.getElementById('f-rating').value      = game.rating      || 'E';
+  document.getElementById('f-image').value       = '';
+  const preview = document.getElementById('img-preview');
+  const label   = document.getElementById('current-img-label');
+  if (game.image_url) {
+    preview.src = game.image_url; preview.classList.add('visible');
+    label.textContent = '↑ Current image — upload a new one to replace it';
+  } else {
+    preview.classList.remove('visible'); label.textContent = '';
+  }
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); }
+function closeModalOnOverlay(e) { if (e.target === document.getElementById('modal-overlay')) closeModal(); }
+function previewImage(event) {
+  const file = event.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const p = document.getElementById('img-preview');
+    p.src = e.target.result; p.classList.add('visible');
+    document.getElementById('current-img-label').textContent = `Selected: ${file.name}`;
+  };
+  reader.readAsDataURL(file);
+}
+async function saveGame() {
+  const btn    = document.getElementById('modal-save-btn');
+  const gameId = document.getElementById('edit-game-id').value;
+  const isEdit = !!gameId;
+  const title    = document.getElementById('f-title').value.trim();
+  const desc     = document.getElementById('f-desc').value.trim();
+  const price    = document.getElementById('f-price').value;
+  const stock    = document.getElementById('f-stock').value;
+  const genre    = document.getElementById('f-genre').value.trim();
+  const platform = document.getElementById('f-platform').value.trim();
+  const rating   = document.getElementById('f-rating').value;
+  const fileInput = document.getElementById('f-image');
+  if (!title || !desc || !price || !stock || !genre || !platform) {
+    toast('Please fill in all required fields', 'error'); return;
+  }
+  btn.disabled = true; btn.textContent = isEdit ? 'Saving…' : 'Adding…';
+  try {
+    const payload = { title, description: desc, price: parseFloat(price), stock: parseInt(stock), genre, platform, rating };
+    if (fileInput.files.length > 0) {
+      const file = fileInput.files[0];
+      payload.image              = await fileToBase64(file);
+      payload.image_content_type = file.type || 'image/jpeg';
+    }
+    const data = isEdit
+      ? await apiFetch(`/games/${gameId}`, { method: 'PUT',  body: JSON.stringify(payload) })
+      : await apiFetch('/games',            { method: 'POST', body: JSON.stringify(payload) });
+    if (data) { toast(isEdit ? `✅ "${title}" updated` : `✅ "${title}" added`); closeModal(); loadAdmin(); }
+    else toast('Save failed — check console', 'error');
+  } catch(e) {
+    toast('Error: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = isEdit ? 'Save Changes' : 'Add Game';
+  }
+}
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload  = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+loadAdmin();
+</script>
+</body>
+</html>

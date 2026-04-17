@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>GameVault — Cart</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="styles.css"/>
+  <script src="config.js"></script>
+  <script src="auth.js"></script>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">Game<span>Vault</span></div>
+  <div class="nav-links">
+    <a class="nav-link" data-page="index.html" href="index.html">🎮 Store</a>
+    <a class="nav-link" data-page="cart.html"   href="cart.html">🛒 Cart</a>
+    <a class="nav-link" data-page="orders.html" href="orders.html">📦 Orders</a>
+    <a class="nav-link admin-link" data-page="admin.html" href="admin.html">⚙️ Admin</a>
+  </div>
+</nav>
+
+<main>
+  <div class="page-header">
+    <div>
+      <div class="page-title">🛒 Your Cart</div>
+      <div class="page-sub" id="cart-sub">Loading…</div>
+    </div>
+  </div>
+  <div id="cart-content"><div class="spinner"></div></div>
+</main>
+
+<!-- ── CONFIRM ORDER MODAL ── -->
+<div class="confirm-modal-overlay" id="confirm-order-overlay">
+  <div class="confirm-modal">
+    <div class="confirm-modal-icon">🛒</div>
+    <div class="confirm-modal-title">Confirm Your Order</div>
+    <div class="confirm-modal-sub">Review your items below and confirm to place the order.</div>
+    <div class="confirm-order-summary" id="confirm-order-summary"></div>
+    <div class="confirm-actions">
+      <button class="cancel-confirm-btn" onclick="closeConfirmOrder()">Cancel</button>
+      <button class="confirm-btn" id="confirm-order-btn" onclick="submitOrder()">Place Order ✓</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="common.js"></script>
+<script>
+const USER_ID = getOrCreateUserId();
+let _cartCache = [];
+
+async function loadCart() {
+  const c = document.getElementById('cart-content');
+  c.innerHTML = '<div class="spinner"></div>';
+  const data = await apiFetch(`/cart/${USER_ID}`);
+  if (!data) return;
+  const items = data.items || [];
+  _cartCache = items;
+  document.getElementById('cart-sub').textContent = `${items.length} item${items.length !== 1 ? 's' : ''}`;
+  if (!items.length) {
+    c.innerHTML = '<div class="empty"><div class="empty-icon">🛒</div><div class="empty-text">Your cart is empty. <a href="index.html" style="color:var(--accent)">Browse games →</a></div></div>';
+    return;
+  }
+  const total = items.reduce((s, i) => s + parseFloat(i.price) * parseInt(i.quantity), 0);
+  c.innerHTML = `
+    <div class="cart-list">
+      ${items.map(i => `
+        <div class="cart-item">
+          <div class="cart-item-info">
+            <div class="cart-item-title">${i.title}</div>
+            <div class="cart-item-meta">Qty: ${i.quantity}</div>
+          </div>
+          <div class="cart-item-price">$${(parseFloat(i.price) * i.quantity).toFixed(2)}</div>
+          <button class="remove-btn" onclick="removeFromCart('${i.game_id}')">Remove</button>
+        </div>`).join('')}
+    </div>
+    <div class="cart-total">
+      <div>
+        <div class="total-label">Total</div>
+        <div class="total-value">$${total.toFixed(2)}</div>
+      </div>
+      <button class="place-order-btn" onclick="openConfirmOrder()">Place Order →</button>
+    </div>`;
+}
+
+async function removeFromCart(gameId) {
+  await apiFetch(`/cart/${USER_ID}/items/${gameId}`, { method: 'DELETE' });
+  toast('🗑️ Item removed');
+  loadCart();
+}
+
+function openConfirmOrder() {
+  if (!_cartCache.length) { toast('Your cart is empty', 'error'); return; }
+  const total = _cartCache.reduce((s, i) => s + parseFloat(i.price) * parseInt(i.quantity), 0);
+  document.getElementById('confirm-order-summary').innerHTML = `
+    ${_cartCache.map(i => `
+      <div class="summary-row">
+        <span class="label">${i.title} <span style="color:var(--muted)">x${i.quantity}</span></span>
+        <span style="font-family:var(--font-head);color:var(--text)">$${(parseFloat(i.price) * i.quantity).toFixed(2)}</span>
+      </div>`).join('')}
+    <hr class="divider"/>
+    <div class="summary-row total">
+      <span class="label">Order Total</span>
+      <span class="val">$${total.toFixed(2)}</span>
+    </div>`;
+  document.getElementById('confirm-order-overlay').classList.add('open');
+}
+function closeConfirmOrder() {
+  document.getElementById('confirm-order-overlay').classList.remove('open');
+}
+
+async function submitOrder() {
+  const btn = document.getElementById('confirm-order-btn');
+  btn.disabled = true; btn.textContent = 'Placing Order…';
+  try {
+    const data = await apiFetch('/orders', {
+      method: 'POST',
+      body: JSON.stringify({ user_id: USER_ID })
+    });
+    if (data && (data.order || data.message)) {
+      closeConfirmOrder();
+      toast('🎉 Order placed successfully!');
+      setTimeout(() => { window.location.href = 'orders.html'; }, 1000);
+    } else {
+      toast('Failed to place order. Try again.', 'error');
+    }
+  } catch(e) {
+    toast('Error placing order: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Place Order ✓';
+  }
+}
+
+loadCart();
+</script>
+</body>
+</html>

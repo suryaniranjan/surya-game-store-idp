@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>GameVault — Store</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="styles.css"/>
+  <script src="config.js"></script>
+  <script src="auth.js"></script>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">Game<span>Vault</span></div>
+  <div class="nav-links">
+    <a class="nav-link" data-page="index.html" href="index.html">🎮 Store</a>
+    <a class="nav-link" data-page="cart.html"   href="cart.html">🛒 Cart</a>
+    <a class="nav-link" data-page="orders.html" href="orders.html">📦 Orders</a>
+    <a class="nav-link admin-link" data-page="admin.html" href="admin.html">⚙️ Admin</a>
+  </div>
+</nav>
+
+<main>
+  <div class="page-header">
+    <div>
+      <div class="page-title">All Games</div>
+      <div class="page-sub" id="store-sub">Loading catalogue…</div>
+    </div>
+  </div>
+
+  <!-- ── INLINE SEARCH BAR ── -->
+  <div class="search-bar">
+    <span style="color:var(--muted)">🔍</span>
+    <input type="text" id="search-q" placeholder="Search by title, genre or platform…" onkeydown="if(event.key==='Enter')doSearch()"/>
+    <select id="filter-genre"><option value="">All Genres</option></select>
+    <select id="filter-platform"><option value="">All Platforms</option></select>
+    <select id="filter-rating"><option value="">Any Rating</option></select>
+    <button class="search-go" onclick="doSearch()">Search</button>
+    <button class="search-go" style="background:var(--surface2);color:var(--muted);border:1px solid var(--border);" onclick="clearSearch()">✕</button>
+  </div>
+
+  <div id="store-content"><div class="spinner"></div></div>
+</main>
+
+<div class="toast" id="toast"></div>
+<script src="common.js"></script>
+<script>
+const USER_ID = getOrCreateUserId();
+
+async function loadFilters() {
+  const data = await apiFetch('/search/filters');
+  if (!data) return;
+  document.getElementById('filter-genre').innerHTML    = '<option value="">All Genres</option>'    + (data.genres    || []).map(g => `<option>${g}</option>`).join('');
+  document.getElementById('filter-platform').innerHTML = '<option value="">All Platforms</option>' + (data.platforms || []).map(p => `<option>${p}</option>`).join('');
+  document.getElementById('filter-rating').innerHTML   = '<option value="">Any Rating</option>'    + (data.ratings   || []).map(r => `<option>${r}</option>`).join('');
+}
+
+async function loadStore() {
+  const c = document.getElementById('store-content');
+  c.innerHTML = '<div class="spinner"></div>';
+  const data = await apiFetch('/games');
+  if (!data) return;
+  document.getElementById('store-sub').textContent = `${data.count || 0} games available`;
+  renderGames(data.games || [], c);
+}
+
+async function doSearch() {
+  const q        = document.getElementById('search-q').value.trim();
+  const genre    = document.getElementById('filter-genre').value;
+  const platform = document.getElementById('filter-platform').value;
+  const rating   = document.getElementById('filter-rating').value;
+
+  // If all filters empty — just reload full store
+  if (!q && !genre && !platform && !rating) { loadStore(); return; }
+
+  const c = document.getElementById('store-content');
+  c.innerHTML = '<div class="spinner"></div>';
+  const params = new URLSearchParams();
+  if (q)        params.set('q', q);
+  if (genre)    params.set('genre', genre);
+  if (platform) params.set('platform', platform);
+  if (rating)   params.set('rating', rating);
+  const data = await apiFetch('/search?' + params.toString());
+  if (!data) return;
+  const results = data.results || [];
+  document.getElementById('store-sub').textContent = `${results.length} result${results.length !== 1 ? 's' : ''} found`;
+  renderGames(results, c);
+}
+
+function clearSearch() {
+  document.getElementById('search-q').value = '';
+  document.getElementById('filter-genre').value = '';
+  document.getElementById('filter-platform').value = '';
+  document.getElementById('filter-rating').value = '';
+  loadStore();
+}
+
+function renderGames(games, container) {
+  if (!games.length) {
+    container.innerHTML = '<div class="empty"><div class="empty-icon">🕹️</div><div class="empty-text">No games found.</div></div>';
+    return;
+  }
+  container.innerHTML = '<div class="game-grid">' +
+    games.map(g => `
+      <div class="game-card">
+        ${gameImageHTML(g)}
+        <div class="game-body">
+          <div class="game-title">${g.title}</div>
+          <div class="game-genre">${g.genre || ''} · ${g.platform || ''}</div>
+          <div class="game-footer">
+            <div class="game-price">$${parseFloat(g.price).toFixed(2)}</div>
+            <button class="add-btn" onclick='addToCart(${JSON.stringify(g)})'>Add to Cart</button>
+          </div>
+        </div>
+      </div>`).join('') + '</div>';
+}
+
+async function addToCart(game) {
+  await apiFetch(`/cart/${USER_ID}/items`, {
+    method: 'POST',
+    body: JSON.stringify({ game_id: game.game_id, title: game.title, price: game.price, quantity: 1 })
+  });
+  toast(`✅ "${game.title}" added to cart`);
+}
+
+loadFilters();
+loadStore();
+</script>
+</body>
+</html>
