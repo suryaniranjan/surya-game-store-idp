@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>GameVault — Wishlist</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="styles.css"/>
+  <script src="config.js"></script>
+  <script src="auth.js"></script>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">Game<span>Vault</span></div>
+  <div class="nav-links">
+    <a class="nav-link" data-page="index.html"    href="index.html">🎮 Store</a>
+    <a class="nav-link" data-page="cart.html"     href="cart.html">🛒 Cart</a>
+    <a class="nav-link" data-page="wishlist.html" href="wishlist.html">❤️ Wishlist</a>
+    <a class="nav-link" data-page="orders.html"   href="orders.html">📦 Orders</a>
+    <a class="nav-link admin-link" data-page="admin.html" href="admin.html">⚙️ Admin</a>
+  </div>
+</nav>
+
+<main>
+  <div class="page-header">
+    <div>
+      <div class="page-title">❤️ Your Wishlist</div>
+      <div class="page-sub" id="wishlist-sub">Loading…</div>
+    </div>
+    <button class="clear-wishlist-btn" id="clear-btn" onclick="clearWishlist()" style="display:none;">
+      Clear All
+    </button>
+  </div>
+
+  <div id="wishlist-content"><div class="spinner"></div></div>
+</main>
+
+<div class="toast" id="toast"></div>
+<script src="common.js"></script>
+<script>
+const USER_ID = getOrCreateUserId();
+
+async function loadWishlist() {
+  const c = document.getElementById('wishlist-content');
+  c.innerHTML = '<div class="spinner"></div>';
+
+  const data = await apiFetch(`/wishlist/${USER_ID}`);
+  if (!data) return;
+
+  const items = data.items || [];
+
+  // Keep _wishlistIds in sync (from common.js)
+  _wishlistIds = new Set(items.map(i => i.game_id));
+
+  document.getElementById('wishlist-sub').textContent =
+    `${items.length} item${items.length !== 1 ? 's' : ''} saved`;
+
+  const clearBtn = document.getElementById('clear-btn');
+  clearBtn.style.display = items.length ? 'block' : 'none';
+
+  if (!items.length) {
+    c.innerHTML = `
+      <div class="empty">
+        <div class="empty-icon">❤️</div>
+        <div class="empty-text">
+          Your wishlist is empty.<br/>
+          <a href="index.html" style="color:var(--accent)">Browse games and add some →</a>
+        </div>
+      </div>`;
+    return;
+  }
+
+  c.innerHTML = `<div class="wishlist-grid">${items.map(renderWishlistCard).join('')}</div>`;
+}
+
+function renderWishlistCard(item) {
+  const stock      = parseInt(item.stock ?? 0);
+  const outOfStock = stock === 0;
+  const lowStock   = !outOfStock && stock <= 10;
+
+  const imageHTML = item.image_url
+    ? `<img src="${item.image_url}" alt="${item.title}"
+            onerror="this.parentElement.innerHTML=placeholderHTML()"/>`
+    : placeholderHTML();
+
+  const stockBadge = outOfStock
+    ? `<div class="oos-label" style="margin-bottom:6px;">Out of Stock</div>`
+    : lowStock
+    ? `<div class="low-stock-badge">Only ${stock} left!</div>`
+    : '';
+
+  // Move to cart button — disabled if out of stock
+  const moveBtn = outOfStock
+    ? `<button class="add-btn oos-btn" disabled>Out of Stock</button>`
+    : `<button class="add-btn move-btn"
+         id="move-${item.game_id}"
+         onclick="moveToCart('${item.game_id}', '${item.title}', this)">
+         🛒 Move to Cart
+       </button>`;
+
+  return `
+    <div class="cart-item wishlist-item" id="witem-${item.game_id}">
+      <div class="wishlist-img">${imageHTML}</div>
+      <div class="wishlist-item-body">
+        <div class="cart-item-info">
+          <div class="cart-item-title">${item.title}</div>
+          <div class="cart-item-meta">${item.genre || ''} · ${item.platform || ''}</div>
+          ${stockBadge}
+        </div>
+        <div class="wishlist-item-right">
+          <div class="cart-item-price">$${parseFloat(item.price).toFixed(2)}</div>
+          <div class="wishlist-item-actions">
+            ${moveBtn}
+            <button class="remove-btn"
+              onclick="removeFromWishlist('${item.game_id}', '${item.title}')">
+              Remove
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+async function moveToCart(gameId, title, btnEl) {
+  btnEl.disabled    = true;
+  btnEl.textContent = 'Moving…';
+
+  const data = await apiFetch(`/wishlist/${USER_ID}/items/${gameId}/move-to-cart`, {
+    method: 'POST',
+    body:   JSON.stringify({})
+  });
+
+  if (data) {
+    toast(`🛒 "${title}" moved to cart!`);
+    // Animate removal then reload
+    const row = document.getElementById(`witem-${gameId}`);
+    if (row) { row.style.opacity = '0'; row.style.transition = 'opacity 0.3s'; }
+    setTimeout(loadWishlist, 350);
+  } else {
+    toast('Failed to move item', 'error');
+    btnEl.disabled    = false;
+    btnEl.textContent = '🛒 Move to Cart';
+  }
+}
+
+async function removeFromWishlist(gameId, title) {
+  const data = await apiFetch(`/wishlist/${USER_ID}/items/${gameId}`, {
+    method: 'DELETE'
+  });
+  if (data) {
+    toast(`💔 "${title}" removed from wishlist`);
+    const row = document.getElementById(`witem-${gameId}`);
+    if (row) { row.style.opacity = '0'; row.style.transition = 'opacity 0.3s'; }
+    setTimeout(loadWishlist, 350);
+  } else {
+    toast('Failed to remove item', 'error');
+  }
+}
+
+async function clearWishlist() {
+  if (!confirm('Clear your entire wishlist?')) return;
+  const data = await apiFetch(`/wishlist/${USER_ID}`, { method: 'DELETE' });
+  if (data) {
+    toast('🗑️ Wishlist cleared');
+    loadWishlist();
+  }
+}
+
+loadWishlist();
+</script>
+</body>
+</html>

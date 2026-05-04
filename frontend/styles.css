@@ -320,3 +320,425 @@ textarea { resize: vertical; min-height: 80px; }
 }
 .toast.show { opacity: 1; transform: translateY(0); }
 .toast.error { border-left-color: var(--danger); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   APPEND THESE RULES TO THE BOTTOM OF YOUR EXISTING styles.css
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Out-of-stock overlay on game image ─────────────────────────────────── */
+.game-img-wrap {
+  position: relative; /* ensure overlay positions correctly */
+}
+.oos-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 10, 15, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(2px);
+}
+.oos-label {
+  background: rgba(255, 68, 68, 0.18);
+  border: 1px solid rgba(255, 68, 68, 0.5);
+  color: #ff6b6b;
+  font-family: var(--font-head);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 6px 16px;
+  border-radius: 20px;
+  text-transform: uppercase;
+}
+
+/* ── Out-of-stock card dimming ──────────────────────────────────────────── */
+.card-oos {
+  opacity: 0.75;
+}
+.card-oos:hover {
+  transform: none;         /* disable hover lift for OOS cards */
+  border-color: var(--border);
+}
+.price-oos {
+  color: var(--muted) !important;
+  text-decoration: line-through;
+}
+
+/* ── Out-of-stock Add to Cart button ────────────────────────────────────── */
+.add-btn.oos-btn {
+  background: var(--surface2);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  cursor: not-allowed;
+  opacity: 1; /* override normal .add-btn hover */
+}
+.add-btn.oos-btn:hover {
+  opacity: 1;
+}
+
+/* ── Low stock badge on product card ────────────────────────────────────── */
+.low-stock-badge {
+  display: inline-block;
+  margin-bottom: 8px;
+  padding: 3px 10px;
+  background: rgba(255, 107, 53, 0.12);
+  border: 1px solid rgba(255, 107, 53, 0.35);
+  color: var(--accent2);
+  font-size: 11px;
+  font-family: var(--font-head);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  border-radius: 20px;
+}
+
+/* ── Admin stock badges on product cards ────────────────────────────────── */
+.admin-stock-badge {
+  font-size: 12px;
+  font-family: var(--font-body);
+  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: 20px;
+  display: inline-block;
+}
+.admin-stock-badge.ok  { background: rgba(68,255,136,0.08); color: var(--success); border: 1px solid rgba(68,255,136,0.2); }
+.admin-stock-badge.low { background: rgba(255,107,53,0.1);  color: var(--accent2); border: 1px solid rgba(255,107,53,0.3); }
+.admin-stock-badge.oos { background: rgba(255,68,68,0.1);   color: var(--danger);  border: 1px solid rgba(255,68,68,0.25); }
+
+/* ── Orders tab bar (orders.html) ───────────────────────────────────────── */
+.orders-tabs {
+  display: flex;
+  gap: 4px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 5px;
+  margin-bottom: 28px;
+  width: fit-content;
+}
+.tab-btn {
+  padding: 9px 20px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+}
+.tab-btn:hover { color: var(--text); background: var(--surface2); }
+.tab-btn.active {
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.tab-badge {
+  background: rgba(255,255,255,0.1);
+  border-radius: 20px;
+  padding: 1px 7px;
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 20px;
+  text-align: center;
+}
+
+/* ── Tab panels ─────────────────────────────────────────────────────────── */
+.tab-panel          { display: none; }
+.tab-panel.active   { display: block; }
+
+/* ── History section label ──────────────────────────────────────────────── */
+.history-section-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 4px 0 14px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 20px;
+}
+
+/* ── Empty state inside a tab ───────────────────────────────────────────── */
+.tab-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--muted);
+}
+.tab-empty-icon { font-size: 36px; margin-bottom: 12px; }
+.tab-empty-text { font-size: 14px; }
+
+/* ── Order status colour overrides (adds DELIVERED) ─────────────────────── */
+.order-status.DELIVERED { background: rgba(68,255,136,0.1); color: var(--success); border: 1px solid rgba(68,255,136,0.25); }
+.order-status.REJECTED  { background: rgba(255,68,68,0.1);  color: var(--danger);  border: 1px solid rgba(255,68,68,0.25);  }
+
+/* ── Admin section tabs (admin.html) ────────────────────────────────────── */
+.admin-section-tabs {
+  display: flex;
+  gap: 4px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 5px;
+  margin-bottom: 32px;
+  width: fit-content;
+}
+.admin-tab-btn {
+  padding: 9px 24px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.admin-tab-btn:hover  { color: var(--text); background: var(--surface2); }
+.admin-tab-btn.active { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+.admin-tab-panel      { display: none; }
+.admin-tab-panel.active { display: block; }
+
+/* ── Admin orders panel ─────────────────────────────────────────────────── */
+.orders-filter-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.filter-chip {
+  padding: 6px 16px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  font-family: var(--font-body);
+  cursor: pointer;
+  transition: all 0.18s;
+}
+.filter-chip:hover  { color: var(--text); background: var(--surface2); }
+.filter-chip.active { background: var(--surface2); color: var(--text); border-color: rgba(255,255,255,0.2); }
+
+.orders-count-label {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 16px;
+}
+.admin-orders-list { display: flex; flex-direction: column; gap: 14px; }
+
+.admin-order-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px 24px;
+  transition: border-color 0.2s;
+}
+.admin-order-card:hover { border-color: rgba(255,255,255,0.12); }
+
+.admin-order-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.admin-order-meta  { display: flex; flex-direction: column; gap: 4px; }
+.admin-order-id    { font-family: var(--font-head); font-weight: 700; font-size: 15px; }
+.admin-order-user  { font-size: 12px; color: var(--muted); font-family: monospace; }
+.admin-order-date  { font-size: 12px; color: var(--muted); }
+
+.admin-order-items {
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.admin-order-item-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+}
+.admin-order-item-name { color: var(--muted); }
+
+.admin-order-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.admin-order-total {
+  font-family: var(--font-head);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--accent);
+}
+.admin-order-total span {
+  color: var(--muted);
+  font-size: 12px;
+  font-family: var(--font-body);
+  font-weight: 400;
+  margin-right: 6px;
+}
+
+.admin-action-btns { display: flex; gap: 8px; }
+
+.approve-btn {
+  padding: 8px 18px;
+  border-radius: 8px;
+  border: 1px solid rgba(68,255,136,0.3);
+  background: rgba(68,255,136,0.08);
+  color: var(--success);
+  font-size: 13px;
+  font-family: var(--font-body);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+.approve-btn:hover:not(:disabled) { background: rgba(68,255,136,0.16); border-color: rgba(68,255,136,0.6); }
+.approve-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.reject-btn {
+  padding: 8px 18px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,68,68,0.3);
+  background: rgba(255,68,68,0.08);
+  color: var(--danger);
+  font-size: 13px;
+  font-family: var(--font-body);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+.reject-btn:hover:not(:disabled) { background: rgba(255,68,68,0.16); border-color: rgba(255,68,68,0.6); }
+.reject-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   WISHLIST STYLES
+═══════════════════════════════════════════════════════════════ */
+
+/* ── Heart / wishlist toggle button on game cards ── */
+.wish-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  padding: 6px 10px;
+  transition: color 0.2s, border-color 0.2s, transform 0.15s;
+}
+.wish-btn:hover {
+  border-color: #e53935;
+  color: #e53935;
+  transform: scale(1.15);
+}
+.wish-btn.wishlisted {
+  border-color: #e53935;
+  color: #e53935;
+}
+
+/* ── game-actions wraps the ♡ and Add-to-Cart buttons side by side ── */
+.game-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Wishlist page — card layout (reuses cart-item base) ── */
+.wishlist-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.wishlist-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.wishlist-img {
+  width: 90px;
+  height: 90px;
+  border-radius: 10px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--surface2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.wishlist-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.wishlist-item-body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.wishlist-item-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.wishlist-item-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* ── Move to Cart button (accent colour) ── */
+.move-btn {
+  background: var(--accent) !important;
+  min-width: 130px;
+}
+.move-btn:hover {
+  opacity: 0.85;
+}
+
+/* ── Clear all button in page-header ── */
+.clear-wishlist-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 8px 16px;
+  transition: border-color 0.2s, color 0.2s;
+}
+.clear-wishlist-btn:hover {
+  border-color: #e53935;
+  color: #e53935;
+}
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .wishlist-item { flex-direction: column; align-items: flex-start; }
+  .wishlist-item-body { flex-direction: column; align-items: flex-start; }
+  .wishlist-item-right { align-items: flex-start; }
+  .game-actions { flex-wrap: wrap; }
+}

@@ -4,7 +4,7 @@
 
 output "api_gateway_url" {
   description = "Base URL for the Game Store API"
-  value       = aws_apigatewayv2_stage.default.invoke_url
+  value       = "${aws_apigatewayv2_stage.default.invoke_url}v1"
 }
 
 output "cloudfront_url" {
@@ -39,5 +39,5 @@ output "dynamodb_table_arns" {
 
 output "cart_api_url" {
   description = "Full URL for the Cart Lambda endpoint (used by Order service)"
-  value       = "${aws_apigatewayv2_stage.default.invoke_url}/cart"
+  value       = "${aws_apigatewayv2_stage.default.invoke_url}v1/cart"
 }

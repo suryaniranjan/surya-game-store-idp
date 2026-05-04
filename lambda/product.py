@@ -43,15 +43,20 @@ def parse_body(event):
     return {}
 
 
+def strip_version_prefix(route_key):
+    """
+    Strips /v1 (or any /vN) prefix from routeKey so existing
+    routing logic stays unchanged.
+    e.g. "GET /v1/games" -> "GET /games"
+    """
+    import re
+    return re.sub(r'^(\w+) /v\d+', lambda m: m.group(1) + ' ', route_key).rstrip() \
+           if re.match(r'^\w+ /v\d+', route_key) else route_key
+
+
 # ── S3 Image Upload ───────────────────────────────────────────────────────────
 def upload_image_to_s3(image_data, game_id, content_type="image/jpeg"):
-    """
-    Accepts base64 string (with or without data URL prefix).
-    Uploads to S3 under products/{game_id}/{uuid}.ext
-    Returns the public image URL.
-    """
     try:
-        # Strip data URL prefix if present e.g. "data:image/jpeg;base64,..."
         if "," in image_data:
             image_data = image_data.split(",")[1]
 
@@ -83,14 +88,12 @@ def upload_image_to_s3(image_data, game_id, content_type="image/jpeg"):
 
 # ── Game CRUD ─────────────────────────────────────────────────────────────────
 def get_all_games():
-    """GET /games — returns all games in the store."""
     result = table.scan()
     items  = result.get("Items", [])
     return response(200, {"games": items, "count": len(items)})
 
 
 def get_game(game_id):
-    """GET /games/{game_id} — returns one game by ID."""
     result = table.get_item(Key={"game_id": game_id})
     item   = result.get("Item")
     if not item:
@@ -99,15 +102,6 @@ def get_game(game_id):
 
 
 def create_game(body):
-    """
-    POST /games — adds a new game.
-    
-    Send image as base64 in the 'image' field OR
-    send a direct URL in 'image_url'.
-    
-    Required fields: title, description, price, genre, platform, stock
-    Optional fields: image (base64), image_content_type, image_url, rating
-    """
     required = ["title", "description", "price", "genre", "platform", "stock"]
     missing  = [f for f in required if f not in body]
     if missing:
@@ -116,7 +110,6 @@ def create_game(body):
     game_id   = str(uuid.uuid4())
     image_url = body.get("image_url", "")
 
-    # If base64 image provided, upload to S3 and use that URL
     if body.get("image"):
         uploaded_url = upload_image_to_s3(
             image_data   = body["image"],
@@ -148,10 +141,6 @@ def create_game(body):
 
 
 def update_game(game_id, body):
-    """
-    PUT /games/{game_id} — updates fields of an existing game.
-    Pass 'image' (base64) to replace the game image.
-    """
     existing = table.get_item(Key={"game_id": game_id}).get("Item")
     if not existing:
         return response(404, {"message": f"Game '{game_id}' not found"})
@@ -160,7 +149,6 @@ def update_game(game_id, body):
                       "stock", "image_url", "rating"]
     update_fields  = {k: v for k, v in body.items() if k in allowed_fields}
 
-    # Handle image replacement via base64
     if body.get("image"):
         new_url = upload_image_to_s3(
             image_data   = body["image"],
@@ -195,7 +183,6 @@ def update_game(game_id, body):
 
 
 def delete_game(game_id):
-    """DELETE /games/{game_id} — removes a game from the store."""
     existing = table.get_item(Key={"game_id": game_id}).get("Item")
     if not existing:
         return response(404, {"message": f"Game '{game_id}' not found"})
@@ -208,7 +195,10 @@ def delete_game(game_id):
 def lambda_handler(event, context):
     print("Incoming event:", json.dumps(event))
 
-    route       = event.get("routeKey", "")
+    # ── Strip /v1 prefix from routeKey ───────────────────────────────────────
+    route       = strip_version_prefix(event.get("routeKey", ""))
+    # ─────────────────────────────────────────────────────────────────────────
+
     path_params = event.get("pathParameters") or {}
     game_id     = path_params.get("game_id", "")
     body        = parse_body(event)

@@ -15,9 +15,10 @@
 <nav>
   <div class="nav-logo">Game<span>Vault</span></div>
   <div class="nav-links">
-    <a class="nav-link" data-page="index.html" href="index.html">🎮 Store</a>
-    <a class="nav-link" data-page="cart.html"   href="cart.html">🛒 Cart</a>
-    <a class="nav-link" data-page="orders.html" href="orders.html">📦 Orders</a>
+    <a class="nav-link" data-page="index.html"    href="index.html">🎮 Store</a>
+    <a class="nav-link" data-page="cart.html"     href="cart.html">🛒 Cart</a>
+    <a class="nav-link" data-page="wishlist.html" href="wishlist.html">❤️ Wishlist</a>
+    <a class="nav-link" data-page="orders.html"   href="orders.html">📦 Orders</a>
     <a class="nav-link admin-link" data-page="admin.html" href="admin.html">⚙️ Admin</a>
   </div>
 </nav>
@@ -49,6 +50,7 @@
 <script>
 const USER_ID = getOrCreateUserId();
 
+// ── Filters ───────────────────────────────────────────────────────────────────
 async function loadFilters() {
   const data = await apiFetch('/search/filters');
   if (!data) return;
@@ -57,6 +59,7 @@ async function loadFilters() {
   document.getElementById('filter-rating').innerHTML   = '<option value="">Any Rating</option>'    + (data.ratings   || []).map(r => `<option>${r}</option>`).join('');
 }
 
+// ── Store loader ──────────────────────────────────────────────────────────────
 async function loadStore() {
   const c = document.getElementById('store-content');
   c.innerHTML = '<div class="spinner"></div>';
@@ -66,13 +69,13 @@ async function loadStore() {
   renderGames(data.games || [], c);
 }
 
+// ── Search ────────────────────────────────────────────────────────────────────
 async function doSearch() {
   const q        = document.getElementById('search-q').value.trim();
   const genre    = document.getElementById('filter-genre').value;
   const platform = document.getElementById('filter-platform').value;
   const rating   = document.getElementById('filter-rating').value;
 
-  // If all filters empty — just reload full store
   if (!q && !genre && !platform && !rating) { loadStore(); return; }
 
   const c = document.getElementById('store-content');
@@ -97,36 +100,105 @@ function clearSearch() {
   loadStore();
 }
 
+// ── LOW STOCK THRESHOLD ───────────────────────────────────────────────────────
+const LOW_STOCK_THRESHOLD = 10;
+
+// ── Render game grid ──────────────────────────────────────────────────────────
 function renderGames(games, container) {
   if (!games.length) {
     container.innerHTML = '<div class="empty"><div class="empty-icon">🕹️</div><div class="empty-text">No games found.</div></div>';
     return;
   }
+
   container.innerHTML = '<div class="game-grid">' +
-    games.map(g => `
-      <div class="game-card">
-        ${gameImageHTML(g)}
-        <div class="game-body">
-          <div class="game-title">${g.title}</div>
-          <div class="game-genre">${g.genre || ''} · ${g.platform || ''}</div>
-          <div class="game-footer">
-            <div class="game-price">$${parseFloat(g.price).toFixed(2)}</div>
-            <button class="add-btn" onclick='addToCart(${JSON.stringify(g)})'>Add to Cart</button>
+    games.map(g => {
+      const stock      = parseInt(g.stock ?? 0);
+      const outOfStock = stock === 0;
+      const lowStock   = !outOfStock && stock <= LOW_STOCK_THRESHOLD;
+
+      // Out-of-stock overlay on image
+      const imageHTML = outOfStock
+        ? `<div class="game-img-wrap">
+             ${g.image_url
+               ? `<img src="${g.image_url}" alt="${g.title}" onerror="this.parentElement.innerHTML=placeholderHTML()"/>`
+               : placeholderHTML()}
+             <div class="oos-overlay">
+               <span class="oos-label">Out of Stock</span>
+             </div>
+           </div>`
+        : gameImageHTML(g);
+
+      // Low stock badge (only when in stock but low)
+      const lowStockBadge = lowStock
+        ? `<div class="low-stock-badge">Only ${stock} left!</div>`
+        : '';
+
+      // Add to cart button — disabled when out of stock
+      const addBtn = outOfStock
+        ? `<button class="add-btn oos-btn" disabled>Out of Stock</button>`
+        : `<button class="add-btn" onclick='addToCart(${JSON.stringify(g)}, this)'>Add to Cart</button>`;
+
+      // ── Wishlist heart button ─────────────────────────────────────────────
+      const wishlisted = _wishlistIds.has(g.game_id);
+      const wishBtn = `<button
+          class="wish-btn${wishlisted ? ' wishlisted' : ''}"
+          data-game-id="${g.game_id}"
+          title="${wishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}"
+          onclick='toggleWishlist(${JSON.stringify(g)}, "${USER_ID}")'>
+          ${wishlisted ? '♥' : '♡'}
+        </button>`;
+
+      return `
+        <div class="game-card ${outOfStock ? 'card-oos' : ''}">
+          ${imageHTML}
+          <div class="game-body">
+            ${lowStockBadge}
+            <div class="game-title">${g.title}</div>
+            <div class="game-genre">${g.genre || ''} · ${g.platform || ''}</div>
+            <div class="game-footer">
+              <div class="game-price ${outOfStock ? 'price-oos' : ''}">$${parseFloat(g.price).toFixed(2)}</div>
+              <div class="game-actions">
+                ${wishBtn}
+                ${addBtn}
+              </div>
+            </div>
           </div>
-        </div>
-      </div>`).join('') + '</div>';
+        </div>`;
+    }).join('') + '</div>';
 }
 
-async function addToCart(game) {
-  await apiFetch(`/cart/${USER_ID}/items`, {
+// ── Add to cart ───────────────────────────────────────────────────────────────
+async function addToCart(game, btnEl) {
+  if (parseInt(game.stock ?? 0) === 0) {
+    toast('❌ This item is out of stock', 'error');
+    return;
+  }
+
+  btnEl.disabled    = true;
+  btnEl.textContent = 'Adding…';
+
+  const data = await apiFetch(`/cart/${USER_ID}/items`, {
     method: 'POST',
-    body: JSON.stringify({ game_id: game.game_id, title: game.title, price: game.price, quantity: 1 })
+    body: JSON.stringify({
+      game_id:  game.game_id,
+      title:    game.title,
+      price:    game.price,
+      quantity: 1
+    })
   });
-  toast(`✅ "${game.title}" added to cart`);
+
+  if (data) toast(`✅ "${game.title}" added to cart`);
+  else      toast('Failed to add to cart', 'error');
+
+  btnEl.disabled    = false;
+  btnEl.textContent = 'Add to Cart';
 }
 
-loadFilters();
-loadStore();
+// ── Boot: load wishlist IDs first so hearts render correctly ──────────────────
+loadWishlistIds(USER_ID).then(() => {
+  loadFilters();
+  loadStore();
+});
 </script>
 </body>
 </html>

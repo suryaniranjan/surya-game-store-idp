@@ -34,6 +34,12 @@ locals {
       hash_key = "user_id"
       env_key  = "CARTS_TABLE"
     }
+    # ── WISHLIST ──────────────────────────────────────────────────────────────
+    wishlists = {
+      name     = "game-wishlists"
+      hash_key = "user_id"
+      env_key  = "WISHLISTS_TABLE"
+    }
     # orders is NOT here — it needs a GSI so it has its own resource below
   }
 
@@ -68,37 +74,57 @@ locals {
       handler     = "order.lambda_handler"
       description = "Order service"
       env_vars = {
-        ORDERS_TABLE = aws_dynamodb_table.orders_table.name   # ✅ fixed
-        CART_API_URL = "https://h4b0tuf5u4.execute-api.ap-southeast-1.amazonaws.com"
+        ORDERS_TABLE   = aws_dynamodb_table.orders_table.name
+        CART_API_URL   = var.cart_api_url
+        PRODUCTS_TABLE = local.dynamodb_tables.products.name
+      }
+    }
+    # ── WISHLIST ──────────────────────────────────────────────────────────────
+    wishlist = {
+      source_file = "wishlist.py"
+      handler     = "wishlist.lambda_handler"
+      description = "Wishlist service"
+      env_vars = {
+        WISHLISTS_TABLE = local.dynamodb_tables.wishlists.name
+        CARTS_TABLE     = local.dynamodb_tables.carts.name
       }
     }
   }
 
   api_routes = {
-    "GET /"                                  = { lambda_key = "product" }
+    "GET /"                                     = { lambda_key = "product" }
 
     # Product service
-    "GET /games"                             = { lambda_key = "product" }
-    "GET /games/{game_id}"                   = { lambda_key = "product" }
-    "POST /games"                            = { lambda_key = "product" }
-    "PUT /games/{game_id}"                   = { lambda_key = "product" }
-    "DELETE /games/{game_id}"                = { lambda_key = "product" }
+    "GET /v1/games"                             = { lambda_key = "product" }
+    "GET /v1/games/{game_id}"                   = { lambda_key = "product" }
+    "POST /v1/games"                            = { lambda_key = "product" }
+    "PUT /v1/games/{game_id}"                   = { lambda_key = "product" }
+    "DELETE /v1/games/{game_id}"                = { lambda_key = "product" }
 
     # Cart service
-    "GET /cart/{user_id}"                    = { lambda_key = "cart" }
-    "POST /cart/{user_id}/items"             = { lambda_key = "cart" }
-    "DELETE /cart/{user_id}/items/{game_id}" = { lambda_key = "cart" }
-    "DELETE /cart/{user_id}"                 = { lambda_key = "cart" }
+    "GET /v1/cart/{user_id}"                    = { lambda_key = "cart" }
+    "POST /v1/cart/{user_id}/items"             = { lambda_key = "cart" }
+    "DELETE /v1/cart/{user_id}/items/{game_id}" = { lambda_key = "cart" }
+    "DELETE /v1/cart/{user_id}"                 = { lambda_key = "cart" }
 
     # Search service
-    "GET /search"                            = { lambda_key = "search" }
-    "GET /search/filters"                    = { lambda_key = "search" }
-    "GET /search/suggestions"                = { lambda_key = "search" }
+    "GET /v1/search"                            = { lambda_key = "search" }
+    "GET /v1/search/filters"                    = { lambda_key = "search" }
+    "GET /v1/search/suggestions"                = { lambda_key = "search" }
 
     # Order service
-    "GET /orders"                            = { lambda_key = "order" }
-    "POST /orders"                           = { lambda_key = "order" }
-    "DELETE /orders/{order_id}"              = { lambda_key = "order" }
+    "GET /v1/orders"                            = { lambda_key = "order" }
+    "POST /v1/orders"                           = { lambda_key = "order" }
+    "DELETE /v1/orders/{order_id}"              = { lambda_key = "order" }
+    "GET /v1/admin/orders"                      = { lambda_key = "order" }
+    "PUT /v1/orders/{order_id}/status"          = { lambda_key = "order" }
+
+    # Wishlist service
+    "GET /v1/wishlist/{user_id}"                                       = { lambda_key = "wishlist" }
+    "POST /v1/wishlist/{user_id}/items"                                = { lambda_key = "wishlist" }
+    "DELETE /v1/wishlist/{user_id}/items/{game_id}"                    = { lambda_key = "wishlist" }
+    "POST /v1/wishlist/{user_id}/items/{game_id}/move-to-cart"         = { lambda_key = "wishlist" }
+    "DELETE /v1/wishlist/{user_id}"                                    = { lambda_key = "wishlist" }
   }
 }
 
@@ -106,7 +132,7 @@ locals {
 # DYNAMODB
 # ─────────────────────────────────────────────────────────────────────────────
 
-# Generic tables (no GSI needed)
+# Generic tables (no GSI needed) — products, carts, wishlists
 resource "aws_dynamodb_table" "tables" {
   for_each = local.dynamodb_tables
 
@@ -171,7 +197,7 @@ resource "aws_iam_role_policy_attachment" "lambda_logs" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
-# products + carts tables
+# products + carts + wishlists tables (all generic tables in the for_each)
 resource "aws_iam_role_policy" "lambda_dynamodb" {
   name = "${var.project_name}-lambda-dynamodb-policy"
   role = aws_iam_role.lambda_exec.id
@@ -216,13 +242,57 @@ resource "aws_iam_role_policy" "lambda_orders_dynamodb" {
       Effect = "Allow"
       Action = [
         "dynamodb:PutItem", "dynamodb:GetItem", "dynamodb:UpdateItem",
-        "dynamodb:DeleteItem", "dynamodb:Query"
+        "dynamodb:DeleteItem", "dynamodb:Query", "dynamodb:Scan"
       ]
       Resource = [
         aws_dynamodb_table.orders_table.arn,
         "${aws_dynamodb_table.orders_table.arn}/index/*"
       ]
     }]
+  })
+}
+
+# allow order lambda to read & update stock on the products table
+resource "aws_iam_role_policy" "lambda_order_products_access" {
+  name = "${var.project_name}-lambda-order-products-policy"
+  role = aws_iam_role.lambda_exec.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Action = [
+        "dynamodb:GetItem",
+        "dynamodb:UpdateItem"
+      ]
+      Resource = aws_dynamodb_table.tables["products"].arn
+    }]
+  })
+}
+
+# ── WISHLIST: read/write wishlists + write to carts (for move-to-cart) ────────
+resource "aws_iam_role_policy" "lambda_wishlist_dynamodb" {
+  name = "${var.project_name}-lambda-wishlist-policy"
+  role = aws_iam_role.lambda_exec.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem",
+          "dynamodb:DeleteItem", "dynamodb:Scan"
+        ]
+        Resource = aws_dynamodb_table.tables["wishlists"].arn
+      },
+      {
+        # move-to-cart needs to read & write the carts table
+        Effect   = "Allow"
+        Action   = ["dynamodb:GetItem", "dynamodb:PutItem"]
+        Resource = aws_dynamodb_table.tables["carts"].arn
+      }
+    ]
   })
 }
 

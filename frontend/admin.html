@@ -14,10 +14,11 @@
 
 <nav>
   <div class="nav-logo">Game<span>Vault</span></div>
-  <div class="nav-links">
-    <a class="nav-link" data-page="index.html" href="index.html">🎮 Store</a>
-    <a class="nav-link" data-page="cart.html"   href="cart.html">🛒 Cart</a>
-    <a class="nav-link" data-page="orders.html" href="orders.html">📦 Orders</a>
+    <div class="nav-links">
+    <a class="nav-link" data-page="index.html"    href="index.html">🎮 Store</a>
+    <a class="nav-link" data-page="cart.html"     href="cart.html">🛒 Cart</a>
+    <a class="nav-link" data-page="wishlist.html" href="wishlist.html">❤️ Wishlist</a>
+    <a class="nav-link" data-page="orders.html"   href="orders.html">📦 Orders</a>
     <a class="nav-link admin-link" data-page="admin.html" href="admin.html">⚙️ Admin</a>
   </div>
 </nav>
@@ -26,11 +27,34 @@
   <div class="admin-header">
     <div>
       <div class="page-title">⚙️ Admin Dashboard</div>
-      <div class="page-sub">Manage your game catalogue</div>
+      <div class="page-sub">Manage your game catalogue &amp; orders</div>
     </div>
-    <button class="add-game-btn" onclick="openAddModal()">+ Add New Game</button>
+    <button class="add-game-btn" id="add-game-header-btn" onclick="openAddModal()">+ Add New Game</button>
   </div>
-  <div id="admin-content"><div class="spinner"></div></div>
+
+  <!-- Section tabs -->
+  <div class="admin-section-tabs">
+    <button class="admin-tab-btn active" onclick="switchAdminTab('products', this)">🕹️ Products</button>
+    <button class="admin-tab-btn"        onclick="switchAdminTab('orders',   this)">📦 Orders</button>
+  </div>
+
+  <!-- Products panel -->
+  <div class="admin-tab-panel active" id="admin-panel-products">
+    <div id="admin-content"><div class="spinner"></div></div>
+  </div>
+
+  <!-- Orders panel -->
+  <div class="admin-tab-panel" id="admin-panel-orders">
+    <div class="orders-filter-bar">
+      <button class="filter-chip active" onclick="filterOrders('ALL',       this)">All</button>
+      <button class="filter-chip"        onclick="filterOrders('PLACED',    this)">🕐 Pending</button>
+      <button class="filter-chip"        onclick="filterOrders('DELIVERED', this)">✅ Delivered</button>
+      <button class="filter-chip"        onclick="filterOrders('REJECTED',  this)">❌ Rejected</button>
+      <button class="filter-chip"        onclick="filterOrders('CANCELLED', this)">🚫 Cancelled</button>
+    </div>
+    <div class="orders-count-label" id="admin-orders-count">Loading…</div>
+    <div id="admin-orders-content"><div class="spinner"></div></div>
+  </div>
 </main>
 
 <!-- ── ADD / EDIT MODAL ── -->
@@ -81,13 +105,15 @@
       <div class="img-upload-area">
         <input type="file" id="f-image" accept="image/*" onchange="previewImage(event)"/>
         <div class="upload-icon">🖼️</div>
-        <div class="upload-text">Drop image here or <span>browse</span><br/><small style="color:var(--muted);font-size:11px">JPG, PNG, WebP — uploaded to S3</small></div>
+        <div class="upload-text">Drop image here or <span>browse</span><br/>
+          <small style="color:var(--muted);font-size:11px">JPG, PNG, WebP — uploaded to S3</small>
+        </div>
       </div>
       <img class="img-preview" id="img-preview" alt="Preview"/>
       <div class="current-img-label" id="current-img-label"></div>
     </div>
     <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-cancel"  onclick="closeModal()">Cancel</button>
       <button class="btn-primary" id="modal-save-btn" onclick="saveGame()">Save Game</button>
     </div>
   </div>
@@ -96,6 +122,22 @@
 <div class="toast" id="toast"></div>
 <script src="common.js"></script>
 <script>
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION TAB SWITCHING
+// ─────────────────────────────────────────────────────────────────────────────
+function switchAdminTab(tab, btnEl) {
+  document.querySelectorAll('.admin-tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.admin-tab-panel').forEach(p => p.classList.remove('active'));
+  btnEl.classList.add('active');
+  document.getElementById(`admin-panel-${tab}`).classList.add('active');
+  document.getElementById('add-game-header-btn').style.display = tab === 'products' ? '' : 'none';
+  if (tab === 'orders') loadAdminOrders();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PRODUCTS PANEL
+// ─────────────────────────────────────────────────────────────────────────────
 async function loadAdmin() {
   const c = document.getElementById('admin-content');
   c.innerHTML = '<div class="spinner"></div>';
@@ -110,21 +152,32 @@ function renderGames(games, container) {
     return;
   }
   container.innerHTML = '<div class="game-grid">' +
-    games.map(g => `
-      <div class="game-card">
-        ${gameImageHTML(g)}
-        <div class="game-body">
-          <div class="game-title">${g.title}</div>
-          <div class="game-genre">${g.genre || ''} · ${g.platform || ''}</div>
-          <div class="game-footer">
-            <div class="game-price">$${parseFloat(g.price).toFixed(2)}</div>
+    games.map(g => {
+      const stock    = parseInt(g.stock ?? 0);
+      const oos      = stock === 0;
+      const lowStock = !oos && stock <= 10;
+      const stockLabel = oos
+        ? `<div class="admin-stock-badge oos">❌ Out of Stock</div>`
+        : lowStock
+          ? `<div class="admin-stock-badge low">⚠️ Only ${stock} left</div>`
+          : `<div class="admin-stock-badge ok">📦 ${stock} in stock</div>`;
+      return `
+        <div class="game-card">
+          ${gameImageHTML(g)}
+          <div class="game-body">
+            <div class="game-title">${g.title}</div>
+            <div class="game-genre">${g.genre || ''} · ${g.platform || ''}</div>
+            <div class="game-footer" style="flex-direction:column;align-items:flex-start;gap:8px">
+              <div class="game-price">$${parseFloat(g.price).toFixed(2)}</div>
+              ${stockLabel}
+            </div>
           </div>
-        </div>
-        <div class="admin-card-actions">
-          <button class="edit-btn" onclick='openEditModal(${JSON.stringify(g)})'>✏️ Edit</button>
-          <button class="del-btn"  onclick="deleteGame('${g.game_id}','${g.title.replace(/'/g,"\\'")}')">🗑️ Delete</button>
-        </div>
-      </div>`).join('') + '</div>';
+          <div class="admin-card-actions">
+            <button class="edit-btn" onclick='openEditModal(${JSON.stringify(g)})'>✏️ Edit</button>
+            <button class="del-btn"  onclick="deleteGame('${g.game_id}','${g.title.replace(/'/g,"\\'")}')">🗑️ Delete</button>
+          </div>
+        </div>`;
+    }).join('') + '</div>';
 }
 
 async function deleteGame(gameId, title) {
@@ -145,6 +198,7 @@ function openAddModal() {
   document.getElementById('current-img-label').textContent = '';
   document.getElementById('modal-overlay').classList.add('open');
 }
+
 function openEditModal(game) {
   document.getElementById('modal-title').textContent    = '✏️ Edit Game';
   document.getElementById('modal-save-btn').textContent = 'Save Changes';
@@ -167,8 +221,9 @@ function openEditModal(game) {
   }
   document.getElementById('modal-overlay').classList.add('open');
 }
-function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); }
-function closeModalOnOverlay(e) { if (e.target === document.getElementById('modal-overlay')) closeModal(); }
+
+function closeModal()             { document.getElementById('modal-overlay').classList.remove('open'); }
+function closeModalOnOverlay(e)   { if (e.target === document.getElementById('modal-overlay')) closeModal(); }
 function previewImage(event) {
   const file = event.target.files[0]; if (!file) return;
   const reader = new FileReader();
@@ -179,6 +234,7 @@ function previewImage(event) {
   };
   reader.readAsDataURL(file);
 }
+
 async function saveGame() {
   const btn    = document.getElementById('modal-save-btn');
   const gameId = document.getElementById('edit-game-id').value;
@@ -213,6 +269,7 @@ async function saveGame() {
     btn.disabled = false; btn.textContent = isEdit ? 'Save Changes' : 'Add Game';
   }
 }
+
 function fileToBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -222,6 +279,137 @@ function fileToBase64(file) {
   });
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ORDERS PANEL
+// ─────────────────────────────────────────────────────────────────────────────
+let _allAdminOrders = [];
+let _currentFilter  = 'ALL';
+
+async function loadAdminOrders() {
+  const c = document.getElementById('admin-orders-content');
+  c.innerHTML = '<div class="spinner"></div>';
+  document.getElementById('admin-orders-count').textContent = 'Loading…';
+
+  const data = await apiFetch('/admin/orders');
+  if (!data) {
+    c.innerHTML = '<div class="empty"><div class="empty-icon">📦</div><div class="empty-text">Could not load orders.</div></div>';
+    return;
+  }
+  _allAdminOrders = (data.orders || []).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  renderAdminOrders();
+}
+
+function filterOrders(status, chipEl) {
+  _currentFilter = status;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  chipEl.classList.add('active');
+  renderAdminOrders();
+}
+
+function renderAdminOrders() {
+  const orders = _currentFilter === 'ALL'
+    ? _allAdminOrders
+    : _allAdminOrders.filter(o => o.status === _currentFilter);
+
+  document.getElementById('admin-orders-count').textContent =
+    `${orders.length} order${orders.length !== 1 ? 's' : ''}`;
+
+  const c = document.getElementById('admin-orders-content');
+  if (!orders.length) {
+    c.innerHTML = `<div class="empty"><div class="empty-icon">📭</div><div class="empty-text">No orders match this filter.</div></div>`;
+    return;
+  }
+  c.innerHTML = `<div class="admin-orders-list">${orders.map(renderAdminOrderCard).join('')}</div>`;
+}
+
+function renderAdminOrderCard(o) {
+  const items     = o.items || [];
+  const total     = parseFloat(o.total || 0);
+  const date      = o.created_at ? new Date(o.created_at).toLocaleString() : '—';
+  const shortId   = (o.order_id || '').slice(0, 8).toUpperCase();
+  const status    = o.status || 'PLACED';
+  const isPending = status === 'PLACED';
+
+  const statusLabel = {
+    PLACED:    'Pending',
+    DELIVERED: 'Delivered',
+    REJECTED:  'Rejected',
+    CANCELLED: 'Cancelled'
+  }[status] || status;
+
+  const actionArea = isPending
+    ? `<div class="admin-action-btns">
+         <button class="approve-btn"
+           id="approve-${o.order_id}"
+           onclick="updateOrderStatus('${o.order_id}','DELIVERED',this)">
+           📦 Mark as Sent
+         </button>
+         <button class="reject-btn"
+           id="reject-${o.order_id}"
+           onclick="updateOrderStatus('${o.order_id}','REJECTED',this)">
+           ❌ Reject Order
+         </button>
+       </div>`
+    : `<span class="order-status ${status}">${statusLabel}</span>`;
+
+  return `
+    <div class="admin-order-card" id="admin-order-card-${o.order_id}">
+      <div class="admin-order-top">
+        <div class="admin-order-meta">
+          <div class="admin-order-id">Order #${shortId}</div>
+          <div class="admin-order-user">User: ${o.user_id}</div>
+          <div class="admin-order-date">${date}</div>
+        </div>
+        ${isPending ? `<span class="order-status PLACED">Pending</span>` : ''}
+      </div>
+      <div class="admin-order-items">
+        ${items.map(i => `
+          <div class="admin-order-item-row">
+            <span class="admin-order-item-name">${i.title} × ${i.quantity || 1}</span>
+            <span>$${(parseFloat(i.price) * (i.quantity || 1)).toFixed(2)}</span>
+          </div>`).join('')}
+      </div>
+      <div class="admin-order-footer">
+        <div class="admin-order-total"><span>Total</span>$${total.toFixed(2)}</div>
+        ${actionArea}
+      </div>
+    </div>`;
+}
+
+async function updateOrderStatus(orderId, newStatus, btnEl) {
+  const label = newStatus === 'DELIVERED' ? 'Mark as Sent?' : 'Reject this order?';
+  if (!confirm(label)) return;
+
+  const approveBtn = document.getElementById(`approve-${orderId}`);
+  const rejectBtn  = document.getElementById(`reject-${orderId}`);
+  if (approveBtn) approveBtn.disabled = true;
+  if (rejectBtn)  rejectBtn.disabled  = true;
+  btnEl.textContent = 'Updating…';
+
+  try {
+    const res = await fetch(`${CONFIG.API_URL}/orders/${orderId}/status`, {
+      method:  'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ status: newStatus })
+    });
+    if (res.ok) {
+      toast(newStatus === 'DELIVERED' ? '📦 Order marked as sent' : '❌ Order rejected');
+      await loadAdminOrders();
+    } else {
+      const err = await res.json().catch(() => ({}));
+      toast(`Failed: ${err.error || res.status}`, 'error');
+      if (approveBtn) approveBtn.disabled = false;
+      if (rejectBtn)  rejectBtn.disabled  = false;
+      btnEl.textContent = newStatus === 'DELIVERED' ? '📦 Mark as Sent' : '❌ Reject Order';
+    }
+  } catch(e) {
+    toast('Error: ' + e.message, 'error');
+    if (approveBtn) approveBtn.disabled = false;
+    if (rejectBtn)  rejectBtn.disabled  = false;
+  }
+}
+
+// Initial load
 loadAdmin();
 </script>
 </body>

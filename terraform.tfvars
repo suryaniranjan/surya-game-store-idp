@@ -15,4 +15,4 @@ common_tags = {
 environment  = "dev"
 
 #Replace with your actual Cart API Gateway URL after running terraform output
-cart_api_url = "https://h4b0tuf5u4.execute-api.ap-southeast-1.amazonaws.com/cart"
+cart_api_url = "https://h4b0tuf5u4.execute-api.ap-southeast-1.amazonaws.com/v1"

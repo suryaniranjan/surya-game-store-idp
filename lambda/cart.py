@@ -34,12 +34,22 @@ def parse_body(event):
     return {}
 
 
+def strip_version_prefix(route_key):
+    """
+    Strips /v1 (or any /vN) prefix from routeKey so existing
+    routing logic stays unchanged.
+    e.g. "GET /v1/cart/{user_id}" -> "GET /cart/{user_id}"
+    """
+    import re
+    return re.sub(r'^(\w+) /v\d+', lambda m: m.group(1) + ' ', route_key).rstrip() \
+           if re.match(r'^\w+ /v\d+', route_key) else route_key
+
+
 def get_cart(user_id):
     """GET /cart/{user_id} — returns the user's current cart."""
     result = table.get_item(Key={"user_id": user_id})
     cart = result.get("Item")
     if not cart:
-        # Return an empty cart instead of 404 — better UX
         return response(200, {
             "user_id": user_id,
             "items": [],
@@ -60,12 +70,10 @@ def add_to_cart(user_id, body):
     if int(body["quantity"]) < 1:
         return response(400, {"message": "Quantity must be at least 1"})
 
-    # Load existing cart or start a fresh one
     result = table.get_item(Key={"user_id": user_id})
     cart   = result.get("Item", {"user_id": user_id, "items": []})
     items  = cart.get("items", [])
 
-    # If game already in cart → increase quantity; otherwise append
     for item in items:
         if item["game_id"] == body["game_id"]:
             item["quantity"] = int(item["quantity"]) + int(body["quantity"])
@@ -122,7 +130,10 @@ def clear_cart(user_id):
 def lambda_handler(event, context):
     print("Incoming event:", json.dumps(event))
 
-    route       = event.get("routeKey", "")
+    # ── Strip /v1 prefix from routeKey ───────────────────────────────────────
+    route       = strip_version_prefix(event.get("routeKey", ""))
+    # ─────────────────────────────────────────────────────────────────────────
+
     path_params = event.get("pathParameters") or {}
     user_id     = path_params.get("user_id", "")
     game_id     = path_params.get("game_id", "")
