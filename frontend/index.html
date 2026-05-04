@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GameVault — Store</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="styles.css"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
   <script src="config.js"></script>
   <script src="auth.js"></script>
 </head>
@@ -33,13 +33,13 @@
 
   <!-- ── INLINE SEARCH BAR ── -->
   <div class="search-bar">
-    <span style="color:var(--muted)">🔍</span>
-    <input type="text" id="search-q" placeholder="Search by title, genre or platform…" onkeydown="if(event.key==='Enter')doSearch()"/>
+    <span class="search-icon">🔍</span>
+    <input type="text" id="search-q" placeholder="Search by title, genre or platform…" onkeydown="if(event.key==='Enter')doSearch()">
     <select id="filter-genre"><option value="">All Genres</option></select>
     <select id="filter-platform"><option value="">All Platforms</option></select>
     <select id="filter-rating"><option value="">Any Rating</option></select>
-    <button class="search-go" onclick="doSearch()">Search</button>
-    <button class="search-go" style="background:var(--surface2);color:var(--muted);border:1px solid var(--border);" onclick="clearSearch()">✕</button>
+    <button type="button" class="search-go" onclick="doSearch()">Search</button>
+    <button type="button" class="search-go search-clear" onclick="clearSearch()">✕</button>
   </div>
 
   <div id="store-content"><div class="spinner"></div></div>
@@ -116,7 +116,6 @@ function renderGames(games, container) {
       const outOfStock = stock === 0;
       const lowStock   = !outOfStock && stock <= LOW_STOCK_THRESHOLD;
 
-      // Out-of-stock overlay on image
       const imageHTML = outOfStock
         ? `<div class="game-img-wrap">
              ${g.image_url
@@ -128,19 +127,16 @@ function renderGames(games, container) {
            </div>`
         : gameImageHTML(g);
 
-      // Low stock badge (only when in stock but low)
       const lowStockBadge = lowStock
         ? `<div class="low-stock-badge">Only ${stock} left!</div>`
         : '';
 
-      // Add to cart button — disabled when out of stock
       const addBtn = outOfStock
-        ? `<button class="add-btn oos-btn" disabled>Out of Stock</button>`
-        : `<button class="add-btn" onclick='addToCart(${JSON.stringify(g)}, this)'>Add to Cart</button>`;
+        ? `<button type="button" class="add-btn oos-btn" disabled>Out of Stock</button>`
+        : `<button type="button" class="add-btn" onclick='addToCart(${JSON.stringify(g)}, this)'>Add to Cart</button>`;
 
-      // ── Wishlist heart button ─────────────────────────────────────────────
       const wishlisted = _wishlistIds.has(g.game_id);
-      const wishBtn = `<button
+      const wishBtn = `<button type="button"
           class="wish-btn${wishlisted ? ' wishlisted' : ''}"
           data-game-id="${g.game_id}"
           title="${wishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}"

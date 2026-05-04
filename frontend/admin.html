@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GameVault — Admin</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="styles.css"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
   <script src="config.js"></script>
   <script src="auth.js"></script>
 </head>
@@ -29,13 +29,13 @@
       <div class="page-title">⚙️ Admin Dashboard</div>
       <div class="page-sub">Manage your game catalogue &amp; orders</div>
     </div>
-    <button class="add-game-btn" id="add-game-header-btn" onclick="openAddModal()">+ Add New Game</button>
+    <button type="button" class="add-game-btn" id="add-game-header-btn" onclick="openAddModal()">+ Add New Game</button>
   </div>
 
   <!-- Section tabs -->
   <div class="admin-section-tabs">
-    <button class="admin-tab-btn active" onclick="switchAdminTab('products', this)">🕹️ Products</button>
-    <button class="admin-tab-btn"        onclick="switchAdminTab('orders',   this)">📦 Orders</button>
+    <button type="button" class="admin-tab-btn active" onclick="switchAdminTab('products', this)">🕹️ Products</button>
+    <button type="button" class="admin-tab-btn"        onclick="switchAdminTab('orders',   this)">📦 Orders</button>
   </div>
 
   <!-- Products panel -->
@@ -46,11 +46,11 @@
   <!-- Orders panel -->
   <div class="admin-tab-panel" id="admin-panel-orders">
     <div class="orders-filter-bar">
-      <button class="filter-chip active" onclick="filterOrders('ALL',       this)">All</button>
-      <button class="filter-chip"        onclick="filterOrders('PLACED',    this)">🕐 Pending</button>
-      <button class="filter-chip"        onclick="filterOrders('DELIVERED', this)">✅ Delivered</button>
-      <button class="filter-chip"        onclick="filterOrders('REJECTED',  this)">❌ Rejected</button>
-      <button class="filter-chip"        onclick="filterOrders('CANCELLED', this)">🚫 Cancelled</button>
+      <button type="button" class="filter-chip active" onclick="filterOrders('ALL',       this)">All</button>
+      <button type="button" class="filter-chip"        onclick="filterOrders('PLACED',    this)">🕐 Pending</button>
+      <button type="button" class="filter-chip"        onclick="filterOrders('DELIVERED', this)">✅ Delivered</button>
+      <button type="button" class="filter-chip"        onclick="filterOrders('REJECTED',  this)">❌ Rejected</button>
+      <button type="button" class="filter-chip"        onclick="filterOrders('CANCELLED', this)">🚫 Cancelled</button>
     </div>
     <div class="orders-count-label" id="admin-orders-count">Loading…</div>
     <div id="admin-orders-content"><div class="spinner"></div></div>
@@ -61,10 +61,10 @@
 <div class="modal-overlay" id="modal-overlay" onclick="closeModalOnOverlay(event)">
   <div class="modal">
     <div class="modal-title" id="modal-title">Add New Game</div>
-    <input type="hidden" id="edit-game-id"/>
+    <input type="hidden" id="edit-game-id">
     <div class="form-group">
       <label>Title *</label>
-      <input type="text" id="f-title" placeholder="e.g. Cyberpunk 2077"/>
+      <input type="text" id="f-title" placeholder="e.g. Cyberpunk 2077">
     </div>
     <div class="form-group">
       <label>Description *</label>
@@ -73,21 +73,21 @@
     <div class="form-row">
       <div class="form-group">
         <label>Price ($) *</label>
-        <input type="number" id="f-price" placeholder="29.99" step="0.01" min="0"/>
+        <input type="number" id="f-price" placeholder="29.99" step="0.01" min="0">
       </div>
       <div class="form-group">
         <label>Stock *</label>
-        <input type="number" id="f-stock" placeholder="100" min="0"/>
+        <input type="number" id="f-stock" placeholder="100" min="0">
       </div>
     </div>
     <div class="form-row">
       <div class="form-group">
         <label>Genre *</label>
-        <input type="text" id="f-genre" placeholder="e.g. RPG, FPS, Sports"/>
+        <input type="text" id="f-genre" placeholder="e.g. RPG, FPS, Sports">
       </div>
       <div class="form-group">
         <label>Platform *</label>
-        <input type="text" id="f-platform" placeholder="e.g. PC, PS5, Xbox"/>
+        <input type="text" id="f-platform" placeholder="e.g. PC, PS5, Xbox">
       </div>
     </div>
     <div class="form-group">
@@ -103,18 +103,18 @@
     <div class="form-group">
       <label>Game Image</label>
       <div class="img-upload-area">
-        <input type="file" id="f-image" accept="image/*" onchange="previewImage(event)"/>
+        <input type="file" id="f-image" accept="image/*" onchange="previewImage(event)">
         <div class="upload-icon">🖼️</div>
-        <div class="upload-text">Drop image here or <span>browse</span><br/>
-          <small style="color:var(--muted);font-size:11px">JPG, PNG, WebP — uploaded to S3</small>
+        <div class="upload-text">Drop image here or <span>browse</span><br>
+          <small class="upload-hint">JPG, PNG, WebP — uploaded to S3</small>
         </div>
       </div>
-      <img class="img-preview" id="img-preview" alt="Preview"/>
+      <img class="img-preview" id="img-preview" src="" alt="Preview">
       <div class="current-img-label" id="current-img-label"></div>
     </div>
     <div class="modal-actions">
-      <button class="btn-cancel"  onclick="closeModal()">Cancel</button>
-      <button class="btn-primary" id="modal-save-btn" onclick="saveGame()">Save Game</button>
+      <button type="button" class="btn-cancel"  onclick="closeModal()">Cancel</button>
+      <button type="button" class="btn-primary" id="modal-save-btn" onclick="saveGame()">Save Game</button>
     </div>
   </div>
 </div>
@@ -167,14 +167,14 @@ function renderGames(games, container) {
           <div class="game-body">
             <div class="game-title">${g.title}</div>
             <div class="game-genre">${g.genre || ''} · ${g.platform || ''}</div>
-            <div class="game-footer" style="flex-direction:column;align-items:flex-start;gap:8px">
+            <div class="game-footer game-footer-col">
               <div class="game-price">$${parseFloat(g.price).toFixed(2)}</div>
               ${stockLabel}
             </div>
           </div>
           <div class="admin-card-actions">
-            <button class="edit-btn" onclick='openEditModal(${JSON.stringify(g)})'>✏️ Edit</button>
-            <button class="del-btn"  onclick="deleteGame('${g.game_id}','${g.title.replace(/'/g,"\\'")}')">🗑️ Delete</button>
+            <button type="button" class="edit-btn" onclick='openEditModal(${JSON.stringify(g)})'>✏️ Edit</button>
+            <button type="button" class="del-btn"  onclick="deleteGame('${g.game_id}','${g.title.replace(/'/g,"\\'")}')">🗑️ Delete</button>
           </div>
         </div>`;
     }).join('') + '</div>';
@@ -339,12 +339,12 @@ function renderAdminOrderCard(o) {
 
   const actionArea = isPending
     ? `<div class="admin-action-btns">
-         <button class="approve-btn"
+         <button type="button" class="approve-btn"
            id="approve-${o.order_id}"
            onclick="updateOrderStatus('${o.order_id}','DELIVERED',this)">
            📦 Mark as Sent
          </button>
-         <button class="reject-btn"
+         <button type="button" class="reject-btn"
            id="reject-${o.order_id}"
            onclick="updateOrderStatus('${o.order_id}','REJECTED',this)">
            ❌ Reject Order

@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GameVault — Cart</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="styles.css"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
   <script src="config.js"></script>
   <script src="auth.js"></script>
 </head>
@@ -41,8 +41,8 @@
     <div class="confirm-modal-sub">Review your items below and confirm to place the order.</div>
     <div class="confirm-order-summary" id="confirm-order-summary"></div>
     <div class="confirm-actions">
-      <button class="cancel-confirm-btn" onclick="closeConfirmOrder()">Cancel</button>
-      <button class="confirm-btn" id="confirm-order-btn" onclick="submitOrder()">Place Order ✓</button>
+      <button type="button" class="cancel-confirm-btn" onclick="closeConfirmOrder()">Cancel</button>
+      <button type="button" class="confirm-btn" id="confirm-order-btn" onclick="submitOrder()">Place Order ✓</button>
     </div>
   </div>
 </div>
@@ -62,7 +62,7 @@ async function loadCart() {
   _cartCache = items;
   document.getElementById('cart-sub').textContent = `${items.length} item${items.length !== 1 ? 's' : ''}`;
   if (!items.length) {
-    c.innerHTML = '<div class="empty"><div class="empty-icon">🛒</div><div class="empty-text">Your cart is empty. <a href="index.html" style="color:var(--accent)">Browse games →</a></div></div>';
+    c.innerHTML = '<div class="empty"><div class="empty-icon">🛒</div><div class="empty-text">Your cart is empty. <a href="index.html" class="accent-link">Browse games →</a></div></div>';
     return;
   }
   const total = items.reduce((s, i) => s + parseFloat(i.price) * parseInt(i.quantity), 0);
@@ -75,7 +75,7 @@ async function loadCart() {
             <div class="cart-item-meta">Qty: ${i.quantity}</div>
           </div>
           <div class="cart-item-price">$${(parseFloat(i.price) * i.quantity).toFixed(2)}</div>
-          <button class="remove-btn" onclick="removeFromCart('${i.game_id}')">Remove</button>
+          <button type="button" class="remove-btn" onclick="removeFromCart('${i.game_id}')">Remove</button>
         </div>`).join('')}
     </div>
     <div class="cart-total">
@@ -83,7 +83,7 @@ async function loadCart() {
         <div class="total-label">Total</div>
         <div class="total-value">$${total.toFixed(2)}</div>
       </div>
-      <button class="place-order-btn" onclick="openConfirmOrder()">Place Order →</button>
+      <button type="button" class="place-order-btn" onclick="openConfirmOrder()">Place Order →</button>
     </div>`;
 }
 
@@ -99,10 +99,10 @@ function openConfirmOrder() {
   document.getElementById('confirm-order-summary').innerHTML = `
     ${_cartCache.map(i => `
       <div class="summary-row">
-        <span class="label">${i.title} <span style="color:var(--muted)">x${i.quantity}</span></span>
-        <span style="font-family:var(--font-head);color:var(--text)">$${(parseFloat(i.price) * i.quantity).toFixed(2)}</span>
+        <span class="label">${i.title} <span class="muted-qty">x${i.quantity}</span></span>
+        <span class="summary-price">$${(parseFloat(i.price) * i.quantity).toFixed(2)}</span>
       </div>`).join('')}
-    <hr class="divider"/>
+    <hr class="divider">
     <div class="summary-row total">
       <span class="label">Order Total</span>
       <span class="val">$${total.toFixed(2)}</span>

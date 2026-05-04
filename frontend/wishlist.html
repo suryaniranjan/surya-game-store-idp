@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GameVault — Wishlist</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="styles.css"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
   <script src="config.js"></script>
   <script src="auth.js"></script>
 </head>
@@ -29,7 +29,7 @@
       <div class="page-title">❤️ Your Wishlist</div>
       <div class="page-sub" id="wishlist-sub">Loading…</div>
     </div>
-    <button class="clear-wishlist-btn" id="clear-btn" onclick="clearWishlist()" style="display:none;">
+    <button type="button" class="clear-wishlist-btn clear-wishlist-hidden" id="clear-btn" onclick="clearWishlist()">
       Clear All
     </button>
   </div>
@@ -65,8 +65,8 @@ async function loadWishlist() {
       <div class="empty">
         <div class="empty-icon">❤️</div>
         <div class="empty-text">
-          Your wishlist is empty.<br/>
-          <a href="index.html" style="color:var(--accent)">Browse games and add some →</a>
+          Your wishlist is empty.<br>
+          <a href="index.html" class="accent-link">Browse games and add some →</a>
         </div>
       </div>`;
     return;
@@ -82,19 +82,18 @@ function renderWishlistCard(item) {
 
   const imageHTML = item.image_url
     ? `<img src="${item.image_url}" alt="${item.title}"
-            onerror="this.parentElement.innerHTML=placeholderHTML()"/>`
+            onerror="this.parentElement.innerHTML=placeholderHTML()">`
     : placeholderHTML();
 
   const stockBadge = outOfStock
-    ? `<div class="oos-label" style="margin-bottom:6px;">Out of Stock</div>`
+    ? `<div class="oos-label oos-label-spaced">Out of Stock</div>`
     : lowStock
     ? `<div class="low-stock-badge">Only ${stock} left!</div>`
     : '';
 
-  // Move to cart button — disabled if out of stock
   const moveBtn = outOfStock
-    ? `<button class="add-btn oos-btn" disabled>Out of Stock</button>`
-    : `<button class="add-btn move-btn"
+    ? `<button type="button" class="add-btn oos-btn" disabled>Out of Stock</button>`
+    : `<button type="button" class="add-btn move-btn"
          id="move-${item.game_id}"
          onclick="moveToCart('${item.game_id}', '${item.title}', this)">
          🛒 Move to Cart
@@ -113,7 +112,7 @@ function renderWishlistCard(item) {
           <div class="cart-item-price">$${parseFloat(item.price).toFixed(2)}</div>
           <div class="wishlist-item-actions">
             ${moveBtn}
-            <button class="remove-btn"
+            <button type="button" class="remove-btn"
               onclick="removeFromWishlist('${item.game_id}', '${item.title}')">
               Remove
             </button>
@@ -134,7 +133,6 @@ async function moveToCart(gameId, title, btnEl) {
 
   if (data) {
     toast(`🛒 "${title}" moved to cart!`);
-    // Animate removal then reload
     const row = document.getElementById(`witem-${gameId}`);
     if (row) { row.style.opacity = '0'; row.style.transition = 'opacity 0.3s'; }
     setTimeout(loadWishlist, 350);
