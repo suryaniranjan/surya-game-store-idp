@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GameVault - Cart</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="config.js"></script>
+  <script src="auth.js"></script>
+  <style>
+    /* ── CART FOOTER & PLACE ORDER BUTTON ── */
+    .cart-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 20px 24px;
+      margin-top: 12px;
+    }
+
+    .cart-total {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .cart-total span:first-child {
+      font-size: 0.78rem;
+      color: rgba(255,255,255,0.4);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .cart-total-val {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .checkout-btn {
+      padding: 14px 36px;
+      background: linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%);
+      border: none;
+      border-radius: 12px;
+      color: #fff;
+      font-family: 'Syne', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 20px rgba(124,58,237,0.4);
+      letter-spacing: 0.02em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .checkout-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(124,58,237,0.55);
+    }
+
+    .checkout-btn:active:not(:disabled) {
+      transform: translateY(0);
+      box-shadow: 0 4px 16px rgba(124,58,237,0.4);
+    }
+
+    .checkout-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* ── ORDER CONFIRM POPUP ── */
+    .popup-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+      z-index: 900; align-items: center; justify-content: center;
+    }
+    .popup-overlay.open { display: flex; }
+    .order-popup {
+      background: #1a1a2e; border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px; width: 460px; max-width: 95vw; max-height: 90vh;
+      overflow-y: auto; padding: 32px;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.6);
+      animation: popSlide 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes popSlide {
+      from { transform: translateY(40px) scale(0.95); opacity: 0; }
+      to   { transform: translateY(0) scale(1); opacity: 1; }
+    }
+    .order-popup-title { font-family:'Syne',sans-serif; font-size:1.4rem; font-weight:800; color:#fff; margin-bottom:6px; }
+    .order-popup-sub   { font-size:0.82rem; color:rgba(255,255,255,0.45); margin-bottom:24px; }
+    .popup-items { background:rgba(255,255,255,0.04); border-radius:12px; padding:16px; margin-bottom:20px; }
+    .popup-item-row {
+      display:flex; justify-content:space-between; align-items:center;
+      padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.06);
+      font-size:0.88rem; color:rgba(255,255,255,0.8);
+    }
+    .popup-item-row:last-child { border-bottom:none; }
+    .popup-item-name  { font-weight:500; }
+    .popup-item-qty   { color:rgba(255,255,255,0.4); font-size:0.78rem; margin-left:6px; }
+    .popup-item-price { color:#a78bfa; font-weight:600; }
+    .popup-total-row {
+      display:flex; justify-content:space-between; align-items:center;
+      padding:14px 16px; background:rgba(167,139,250,0.12);
+      border-radius:10px; margin-bottom:24px;
+    }
+    .popup-total-label { font-weight:700; color:#fff; font-size:0.95rem; }
+    .popup-total-val   { font-family:'Syne',sans-serif; font-size:1.3rem; font-weight:800; color:#a78bfa; }
+    .popup-actions { display:flex; gap:12px; }
+    .popup-cancel-btn {
+      flex:1; padding:13px; background:rgba(255,255,255,0.06);
+      border:1px solid rgba(255,255,255,0.1); border-radius:12px;
+      color:rgba(255,255,255,0.6); font-size:0.9rem; font-weight:600;
+      cursor:pointer; font-family:inherit; transition:all 0.2s;
+    }
+    .popup-cancel-btn:hover { background:rgba(255,255,255,0.1); color:#fff; }
+    .popup-pay-btn {
+      flex:2; padding:13px;
+      background:linear-gradient(135deg,#7c3aed,#a78bfa);
+      border:none; border-radius:12px; color:#fff; font-size:0.95rem;
+      font-weight:700; cursor:pointer; font-family:inherit; transition:all 0.2s;
+      box-shadow:0 4px 20px rgba(124,58,237,0.4);
+    }
+    .popup-pay-btn:hover:not(:disabled) { transform:translateY(-1px); box-shadow:0 8px 28px rgba(124,58,237,0.5); }
+    .popup-pay-btn:disabled { opacity:0.6; cursor:not-allowed; transform:none; }
+
+    /* ── RAZORPAY MODAL ── */
+    .rp-overlay {
+      display:none; position:fixed; inset:0;
+      background:rgba(0,0,0,0.75); z-index:1000;
+      align-items:center; justify-content:center;
+    }
+    .rp-overlay.open { display:flex; }
+    .rp-modal {
+      background:#fff; border-radius:16px; width:520px;
+      max-width:96vw; max-height:92vh; overflow:hidden;
+      display:flex; flex-direction:column;
+      box-shadow:0 32px 80px rgba(0,0,0,0.5);
+      animation:rpIn 0.25s ease;
+    }
+    @keyframes rpIn {
+      from { transform:translateY(24px); opacity:0; }
+      to   { transform:translateY(0); opacity:1; }
+    }
+    .rp-header {
+      background:linear-gradient(135deg,#072654,#1a5fad);
+      color:#fff; padding:18px 24px; display:flex;
+      align-items:center; gap:14px; flex-shrink:0;
+    }
+    .rp-logo-wrap { display:flex; align-items:center; gap:8px; }
+    .rp-logo-icon {
+      width:32px; height:32px; background:#fff; border-radius:8px;
+      display:flex; align-items:center; justify-content:center; font-size:1rem;
+    }
+    .rp-logo-text { font-size:1.1rem; font-weight:800; letter-spacing:-0.3px; }
+    .rp-logo-text span { color:#72c5fd; }
+    .rp-merchant-name { font-size:0.78rem; opacity:0.75; }
+    .rp-header-amount { text-align:right; margin-left:auto; }
+    .rp-header-amount-label { font-size:0.7rem; opacity:0.7; }
+    .rp-header-amount-val   { font-size:1.3rem; font-weight:800; }
+
+    .rp-body-wrap { display:flex; flex:1; overflow:hidden; min-height:420px; }
+    .rp-body-wrap.hide { display:none; }
+
+    .rp-sidebar {
+      width:180px; background:#f6f8ff;
+      border-right:1px solid #e8ecf5; flex-shrink:0; overflow-y:auto;
+    }
+    .rp-sidebar-title {
+      font-size:0.68rem; font-weight:700; color:#999;
+      text-transform:uppercase; letter-spacing:0.08em; padding:16px 16px 8px;
+    }
+    .rp-method-item {
+      display:flex; align-items:center; gap:10px; padding:12px 16px;
+      cursor:pointer; border-left:3px solid transparent;
+      transition:all 0.15s; font-size:0.85rem; color:#444; font-weight:500;
+    }
+    .rp-method-item:hover { background:#eef1ff; color:#3b5bdb; }
+    .rp-method-item.active { background:#fff; border-left-color:#3b5bdb; color:#3b5bdb; font-weight:700; }
+    .rp-method-icon { font-size:1.2rem; width:24px; text-align:center; }
+
+    .rp-panel { flex:1; padding:24px; overflow-y:auto; background:#fff; }
+    .rp-panel-title { font-size:1rem; font-weight:700; color:#111; margin-bottom:4px; }
+    .rp-panel-sub   { font-size:0.78rem; color:#888; margin-bottom:20px; }
+
+    .rp-form-group { margin-bottom:14px; }
+    .rp-form-label {
+      font-size:0.72rem; font-weight:700; color:#666;
+      text-transform:uppercase; letter-spacing:0.05em;
+      margin-bottom:6px; display:block;
+    }
+    .rp-form-input {
+      width:100%; padding:11px 14px; border:1.5px solid #dde1f0;
+      border-radius:8px; font-size:0.9rem; color:#222; font-family:inherit;
+      transition:border-color 0.2s; box-sizing:border-box; background:#fafbff;
+    }
+    .rp-form-input:focus { outline:none; border-color:#3b5bdb; background:#fff; }
+    .rp-form-row { display:flex; gap:12px; }
+    .rp-form-row .rp-form-group { flex:1; }
+
+    .rp-test-hint {
+      background:#f0f5ff; border:1px solid #c5d5ff; border-radius:8px;
+      padding:10px 14px; font-size:0.78rem; color:#3b5bdb;
+      margin-bottom:16px; display:flex; gap:8px;
+    }
+    .rp-upi-apps { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; }
+    .rp-upi-app {
+      border:2px solid #e8ecf5; border-radius:10px; padding:14px;
+      cursor:pointer; display:flex; align-items:center; gap:10px;
+      transition:all 0.15s; font-size:0.85rem; font-weight:600; color:#333;
+    }
+    .rp-upi-app:hover,.rp-upi-app.selected { border-color:#3b5bdb; background:#f0f5ff; }
+    .rp-upi-app-icon { font-size:1.5rem; }
+
+    .rp-saved-card {
+      border:1.5px solid #e8ecf5; border-radius:10px; padding:14px;
+      margin-bottom:10px; cursor:pointer; display:flex; align-items:center;
+      gap:12px; transition:all 0.15s;
+    }
+    .rp-saved-card:hover,.rp-saved-card.selected { border-color:#3b5bdb; background:#f0f5ff; }
+    .rp-card-chip { font-size:1.4rem; }
+    .rp-card-details { flex:1; }
+    .rp-card-num  { font-weight:700; font-size:0.88rem; color:#222; font-family:monospace; }
+    .rp-card-meta { font-size:0.72rem; color:#888; margin-top:2px; }
+    .rp-card-network { font-size:1.2rem; }
+
+    .rp-bank-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:16px; }
+    .rp-bank-item {
+      border:1.5px solid #e8ecf5; border-radius:8px; padding:12px;
+      cursor:pointer; display:flex; align-items:center; gap:8px;
+      font-size:0.82rem; font-weight:600; color:#333; transition:all 0.15s;
+    }
+    .rp-bank-item:hover,.rp-bank-item.selected { border-color:#3b5bdb; background:#f0f5ff; color:#3b5bdb; }
+    .rp-bank-icon { font-size:1.2rem; }
+
+    .rp-wallet-list { margin-bottom:16px; }
+    .rp-wallet-item {
+      border:1.5px solid #e8ecf5; border-radius:10px; padding:14px;
+      margin-bottom:8px; cursor:pointer; display:flex; align-items:center;
+      gap:12px; transition:all 0.15s;
+    }
+    .rp-wallet-item:hover,.rp-wallet-item.selected { border-color:#3b5bdb; background:#f0f5ff; }
+    .rp-wallet-icon { font-size:1.5rem; }
+    .rp-wallet-name { font-weight:600; font-size:0.9rem; color:#222; }
+    .rp-wallet-sub  { font-size:0.72rem; color:#888; }
+
+    .rp-sim-box {
+      background:#fff8e1; border:1px solid #ffe082;
+      border-radius:10px; padding:14px; margin-bottom:16px;
+    }
+    .rp-sim-box-title {
+      font-size:0.72rem; font-weight:700; color:#7a6000;
+      text-transform:uppercase; letter-spacing:0.05em; margin-bottom:10px;
+    }
+    .rp-sim-options { display:flex; gap:8px; }
+    .rp-sim-opt {
+      flex:1; padding:9px; border-radius:8px; border:2px solid transparent;
+      cursor:pointer; font-size:0.82rem; font-weight:700; text-align:center;
+      transition:all 0.15s; font-family:inherit;
+    }
+    .rp-sim-opt.success { background:#e8f5e9; color:#2e7d32; border-color:#a5d6a7; }
+    .rp-sim-opt.success.selected,.rp-sim-opt.success:hover { background:#2e7d32; color:#fff; border-color:#2e7d32; }
+    .rp-sim-opt.failure { background:#fdecea; color:#c62828; border-color:#ef9a9a; }
+    .rp-sim-opt.failure.selected,.rp-sim-opt.failure:hover { background:#c62828; color:#fff; border-color:#c62828; }
+
+    .rp-pay-action { margin-top:4px; }
+    .rp-pay-btn {
+      width:100%; padding:14px;
+      background:linear-gradient(135deg,#1a5fad,#3b5bdb);
+      color:#fff; border:none; border-radius:10px; font-size:1rem;
+      font-weight:700; cursor:pointer; font-family:inherit; transition:all 0.2s;
+      box-shadow:0 4px 16px rgba(59,91,219,0.35);
+    }
+    .rp-pay-btn:hover:not(:disabled) { transform:translateY(-1px); box-shadow:0 8px 24px rgba(59,91,219,0.45); }
+    .rp-pay-btn:disabled { opacity:0.6; cursor:not-allowed; transform:none; }
+    .rp-secure-note {
+      text-align:center; font-size:0.72rem; color:#aaa; margin-top:10px;
+      display:flex; align-items:center; justify-content:center; gap:4px;
+    }
+
+    .rp-screen { display:none; }
+    .rp-screen.active { display:flex; flex-direction:column; flex:1; }
+
+    .rp-processing {
+      display:flex; flex-direction:column; align-items:center;
+      justify-content:center; padding:60px 24px; gap:18px; text-align:center;
+    }
+    .rp-spinner {
+      width:52px; height:52px; border:4px solid #e0e7ff;
+      border-top-color:#3b5bdb; border-radius:50%;
+      animation:spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .rp-processing-title  { font-size:1.1rem; font-weight:700; color:#222; }
+    .rp-processing-sub    { font-size:0.82rem; color:#888; }
+    .rp-processing-method { font-size:0.78rem; color:#3b5bdb; font-weight:600; }
+
+    .rp-result {
+      display:flex; flex-direction:column; align-items:center;
+      justify-content:center; padding:50px 32px; gap:12px; text-align:center;
+    }
+    .rp-result-circle {
+      width:80px; height:80px; border-radius:50%;
+      display:flex; align-items:center; justify-content:center;
+      font-size:2.2rem; margin-bottom:4px;
+    }
+    .rp-result-circle.success { background:#e8f5e9; }
+    .rp-result-circle.failure { background:#fdecea; }
+    .rp-result-title { font-size:1.3rem; font-weight:800; color:#111; }
+    .rp-result-sub   { font-size:0.88rem; color:#666; max-width:280px; line-height:1.5; }
+    .rp-result-id    { font-size:0.75rem; color:#aaa; font-family:monospace; }
+    .rp-result-btn {
+      margin-top:10px; padding:13px 36px; border:none; border-radius:10px;
+      font-size:0.95rem; font-weight:700; cursor:pointer; font-family:inherit; transition:all 0.2s;
+    }
+    .rp-result-btn.success { background:#3b5bdb; color:#fff; }
+    .rp-result-btn.success:hover { background:#2d4cc0; }
+    .rp-result-btn.failure { background:#f5f5f5; color:#333; border:1px solid #ddd; }
+    .rp-result-btn.failure:hover { background:#eee; }
+
+    .rp-footer {
+      text-align:center; font-size:0.7rem; color:#bbb;
+      padding:10px 20px 14px; border-top:1px solid #f0f0f0; flex-shrink:0;
+      display:flex; align-items:center; justify-content:center; gap:16px; background:#fafbff;
+    }
+    .rp-footer-item { display:flex; align-items:center; gap:4px; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">Game<span>Vault</span></div>
+  <div class="nav-links">
+    <!-- <a class="nav-link" data-page="index.html"    href="index.html">&#x1F3AE; Store</a>
+    <a class="nav-link" data-page="cart.html"     href="cart.html">&#x1F6D2; Cart</a>
+    <a class="nav-link" data-page="wishlist.html" href="wishlist.html">&#x2764;&#xFE0F; Wishlist</a>
+    <a class="nav-link" data-page="orders.html"   href="orders.html">&#x1F4E6; Orders</a>
+    <a class="nav-link admin-link" data-page="admin.html" href="admin.html">&#x2699;&#xFE0F; Admin</a> -->
+  </div>
+</nav>
+
+<main>
+  <div class="page-header">
+    <div>
+      <div class="page-title">&#x1F6D2; My Cart</div>
+      <div class="page-sub" id="cart-sub">Loading your cart...</div>
+    </div>
+  </div>
+  <div id="cart-content"><div class="spinner"></div></div>
+</main>
+
+<!-- STEP 1: Order Confirm Popup -->
+<div class="popup-overlay" id="order-popup-overlay">
+  <div class="order-popup">
+    <div class="order-popup-title">Review Your Order</div>
+    <div class="order-popup-sub">Confirm your items before proceeding to payment</div>
+    <div class="popup-items" id="popup-items-list"></div>
+    <div class="popup-total-row">
+      <span class="popup-total-label">Order Total</span>
+      <span class="popup-total-val" id="popup-total-val">$0.00</span>
+    </div>
+    <div class="popup-actions">
+      <button class="popup-cancel-btn" onclick="closeOrderPopup()">Cancel</button>
+      <button class="popup-pay-btn" id="popup-pay-btn" onclick="proceedToRazorpay()">
+        &#x1F4B3; Proceed to Pay
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- STEP 2: Razorpay Modal -->
+<div class="rp-overlay" id="rp-overlay">
+  <div class="rp-modal">
+
+    <div class="rp-header">
+      <div class="rp-logo-wrap">
+        <div class="rp-logo-icon">&#x1F4B3;</div>
+        <div>
+          <div class="rp-logo-text">Razor<span>pay</span></div>
+          <div class="rp-merchant-name">GameVault Store</div>
+        </div>
+      </div>
+      <div class="rp-header-amount">
+        <div class="rp-header-amount-label">Amount to Pay</div>
+        <div class="rp-header-amount-val" id="rp-amount-val">$0.00</div>
+      </div>
+    </div>
+
+    <div class="rp-body-wrap" id="rp-body-wrap">
+      <div class="rp-sidebar">
+        <div class="rp-sidebar-title">Pay via</div>
+        <div class="rp-method-item active" onclick="switchMethod('upi',this)">
+          <span class="rp-method-icon">&#x1F4F1;</span> UPI
+        </div>
+        <div class="rp-method-item" onclick="switchMethod('card',this)">
+          <span class="rp-method-icon">&#x1F4B3;</span> Cards
+        </div>
+        <div class="rp-method-item" onclick="switchMethod('netbanking',this)">
+          <span class="rp-method-icon">&#x1F3E6;</span> Net Banking
+        </div>
+        <div class="rp-method-item" onclick="switchMethod('wallet',this)">
+          <span class="rp-method-icon">&#x1F45B;</span> Wallets
+        </div>
+        <div class="rp-method-item" onclick="switchMethod('emi',this)">
+          <span class="rp-method-icon">&#x1F4C5;</span> EMI
+        </div>
+      </div>
+
+      <div class="rp-panel" id="rp-panel">
+
+        <!-- UPI -->
+        <div id="panel-upi" class="rp-method-panel">
+          <div class="rp-panel-title">Pay via UPI</div>
+          <div class="rp-panel-sub">Select your preferred UPI app</div>
+          <div class="rp-upi-apps">
+            <div class="rp-upi-app" onclick="selectUpiApp('gpay',this)">
+              <span class="rp-upi-app-icon">&#x1F4B8;</span> Google Pay
+            </div>
+            <div class="rp-upi-app" onclick="selectUpiApp('phonepe',this)">
+              <span class="rp-upi-app-icon">&#x1F7E3;</span> PhonePe
+            </div>
+            <div class="rp-upi-app" onclick="selectUpiApp('paytm',this)">
+              <span class="rp-upi-app-icon">&#x1F4B0;</span> Paytm
+            </div>
+            <div class="rp-upi-app" onclick="selectUpiApp('bhim',this)">
+              <span class="rp-upi-app-icon">&#x1F1EE;&#x1F1F3;</span> BHIM UPI
+            </div>
+          </div>
+          <div class="rp-form-group" id="upi-id-group" style="display:none">
+            <label class="rp-form-label">UPI ID</label>
+            <input class="rp-form-input" id="upi-id-input" placeholder="yourname@upi">
+          </div>
+          <div class="rp-sim-box">
+            <div class="rp-sim-box-title">&#x26A0;&#xFE0F; Simulate Result</div>
+            <div class="rp-sim-options">
+              <button class="rp-sim-opt success selected" onclick="setSimResult('success',this)">&#x2705; Success</button>
+              <button class="rp-sim-opt failure" onclick="setSimResult('failure',this)">&#x274C; Failure</button>
+            </div>
+          </div>
+          <div class="rp-pay-action">
+            <button class="rp-pay-btn" id="upi-pay-btn" onclick="triggerPayment('UPI')" disabled>Pay Now</button>
+            <div class="rp-secure-note">&#x1F512; 256-bit SSL encrypted</div>
+          </div>
+        </div>
+
+        <!-- Cards -->
+        <div id="panel-card" class="rp-method-panel" style="display:none">
+          <div class="rp-panel-title">Pay via Card</div>
+          <div class="rp-panel-sub">Credit or Debit Card</div>
+          <div class="rp-test-hint">&#x1F9EA; Test mode: any 16 digits. CVV: 123, Expiry: 12/26</div>
+          <div style="font-size:0.72rem;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Saved Cards</div>
+          <div class="rp-saved-card selected" onclick="selectSavedCard(this)">
+            <span class="rp-card-chip">&#x1F4B3;</span>
+            <div class="rp-card-details">
+              <div class="rp-card-num">**** **** **** 4242</div>
+              <div class="rp-card-meta">Visa &bull; Expires 12/26</div>
+            </div>
+            <span class="rp-card-network">&#x1F535;</span>
+          </div>
+          <div class="rp-saved-card" onclick="selectSavedCard(this)">
+            <span class="rp-card-chip">&#x1F4B3;</span>
+            <div class="rp-card-details">
+              <div class="rp-card-num">**** **** **** 5555</div>
+              <div class="rp-card-meta">Mastercard &bull; Expires 09/27</div>
+            </div>
+            <span class="rp-card-network">&#x1F7E0;</span>
+          </div>
+          <div style="font-size:0.72rem;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.05em;margin:14px 0 8px;">Or Add New Card</div>
+          <div class="rp-form-group">
+            <label class="rp-form-label">Card Number</label>
+            <input class="rp-form-input" placeholder="1234  5678  9012  3456" maxlength="19" oninput="formatCardNum(this)">
+          </div>
+          <div class="rp-form-group">
+            <label class="rp-form-label">Cardholder Name</label>
+            <input class="rp-form-input" placeholder="Name on card">
+          </div>
+          <div class="rp-form-row">
+            <div class="rp-form-group">
+              <label class="rp-form-label">Expiry</label>
+              <input class="rp-form-input" placeholder="MM / YY" maxlength="7" oninput="formatExpiry(this)">
+            </div>
+            <div class="rp-form-group">
+              <label class="rp-form-label">CVV</label>
+              <input class="rp-form-input" placeholder="..." maxlength="3" type="password">
+            </div>
+          </div>
+          <div class="rp-sim-box">
+            <div class="rp-sim-box-title">&#x26A0;&#xFE0F; Simulate Result</div>
+            <div class="rp-sim-options">
+              <button class="rp-sim-opt success selected" onclick="setSimResult('success',this)">&#x2705; Success</button>
+              <button class="rp-sim-opt failure" onclick="setSimResult('failure',this)">&#x274C; Failure</button>
+            </div>
+          </div>
+          <div class="rp-pay-action">
+            <button class="rp-pay-btn" onclick="triggerPayment('Debit/Credit Card')">Pay Now</button>
+            <div class="rp-secure-note">&#x1F512; 256-bit SSL encrypted</div>
+          </div>
+        </div>
+
+        <!-- Net Banking -->
+        <div id="panel-netbanking" class="rp-method-panel" style="display:none">
+          <div class="rp-panel-title">Net Banking</div>
+          <div class="rp-panel-sub">Select your bank</div>
+          <div class="rp-bank-grid">
+            <div class="rp-bank-item" onclick="selectBank(this)"><span class="rp-bank-icon">&#x1F535;</span>SBI</div>
+            <div class="rp-bank-item" onclick="selectBank(this)"><span class="rp-bank-icon">&#x1F7E0;</span>HDFC Bank</div>
+            <div class="rp-bank-item" onclick="selectBank(this)"><span class="rp-bank-icon">&#x1F534;</span>ICICI Bank</div>
+            <div class="rp-bank-item" onclick="selectBank(this)"><span class="rp-bank-icon">&#x1F7E2;</span>Axis Bank</div>
+            <div class="rp-bank-item" onclick="selectBank(this)"><span class="rp-bank-icon">&#x1F7E1;</span>Kotak Bank</div>
+            <div class="rp-bank-item" onclick="selectBank(this)"><span class="rp-bank-icon">&#x26AA;</span>Yes Bank</div>
+            <div class="rp-bank-item" onclick="selectBank(this)"><span class="rp-bank-icon">&#x1F535;</span>PNB</div>
+            <div class="rp-bank-item" onclick="selectBank(this)"><span class="rp-bank-icon">&#x1F7E0;</span>Bank of Baroda</div>
+          </div>
+          <div class="rp-sim-box">
+            <div class="rp-sim-box-title">&#x26A0;&#xFE0F; Simulate Result</div>
+            <div class="rp-sim-options">
+              <button class="rp-sim-opt success selected" onclick="setSimResult('success',this)">&#x2705; Success</button>
+              <button class="rp-sim-opt failure" onclick="setSimResult('failure',this)">&#x274C; Failure</button>
+            </div>
+          </div>
+          <div class="rp-pay-action">
+            <button class="rp-pay-btn" id="nb-pay-btn" onclick="triggerPayment('Net Banking')" disabled>Pay Now</button>
+            <div class="rp-secure-note">&#x1F512; 256-bit SSL encrypted</div>
+          </div>
+        </div>
+
+        <!-- Wallets -->
+        <div id="panel-wallet" class="rp-method-panel" style="display:none">
+          <div class="rp-panel-title">Wallets</div>
+          <div class="rp-panel-sub">Select your wallet</div>
+          <div class="rp-wallet-list">
+            <div class="rp-wallet-item" onclick="selectWallet(this)">
+              <span class="rp-wallet-icon">&#x1F4B0;</span>
+              <div><div class="rp-wallet-name">Paytm Wallet</div><div class="rp-wallet-sub">Balance: Rs. 1,500</div></div>
+            </div>
+            <div class="rp-wallet-item" onclick="selectWallet(this)">
+              <span class="rp-wallet-icon">&#x1F4B8;</span>
+              <div><div class="rp-wallet-name">Amazon Pay</div><div class="rp-wallet-sub">Balance: Rs. 800</div></div>
+            </div>
+            <div class="rp-wallet-item" onclick="selectWallet(this)">
+              <span class="rp-wallet-icon">&#x1F4B5;</span>
+              <div><div class="rp-wallet-name">Mobikwik</div><div class="rp-wallet-sub">Balance: Rs. 250</div></div>
+            </div>
+            <div class="rp-wallet-item" onclick="selectWallet(this)">
+              <span class="rp-wallet-icon">&#x1F4B4;</span>
+              <div><div class="rp-wallet-name">Freecharge</div><div class="rp-wallet-sub">Balance: Rs. 100</div></div>
+            </div>
+          </div>
+          <div class="rp-sim-box">
+            <div class="rp-sim-box-title">&#x26A0;&#xFE0F; Simulate Result</div>
+            <div class="rp-sim-options">
+              <button class="rp-sim-opt success selected" onclick="setSimResult('success',this)">&#x2705; Success</button>
+              <button class="rp-sim-opt failure" onclick="setSimResult('failure',this)">&#x274C; Failure</button>
+            </div>
+          </div>
+          <div class="rp-pay-action">
+            <button class="rp-pay-btn" id="wallet-pay-btn" onclick="triggerPayment('Wallet')" disabled>Pay Now</button>
+            <div class="rp-secure-note">&#x1F512; 256-bit SSL encrypted</div>
+          </div>
+        </div>
+
+        <!-- EMI -->
+        <div id="panel-emi" class="rp-method-panel" style="display:none">
+          <div class="rp-panel-title">EMI</div>
+          <div class="rp-panel-sub">Pay in easy instalments</div>
+          <div style="font-size:0.72rem;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">Choose EMI Plan</div>
+          <div id="emi-options" style="margin-bottom:16px;"></div>
+          <div class="rp-sim-box">
+            <div class="rp-sim-box-title">&#x26A0;&#xFE0F; Simulate Result</div>
+            <div class="rp-sim-options">
+              <button class="rp-sim-opt success selected" onclick="setSimResult('success',this)">&#x2705; Success</button>
+              <button class="rp-sim-opt failure" onclick="setSimResult('failure',this)">&#x274C; Failure</button>
+            </div>
+          </div>
+          <div class="rp-pay-action">
+            <button class="rp-pay-btn" id="emi-pay-btn" onclick="triggerPayment('EMI')" disabled>Pay Now</button>
+            <div class="rp-secure-note">&#x1F512; 256-bit SSL encrypted</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Processing screen -->
+    <div class="rp-screen" id="rp-screen-processing">
+      <div class="rp-processing">
+        <div class="rp-spinner"></div>
+        <div class="rp-processing-title">Processing Payment...</div>
+        <div class="rp-processing-method" id="rp-processing-method"></div>
+        <div class="rp-processing-sub">Please do not close this window</div>
+      </div>
+    </div>
+
+    <!-- Result screen -->
+    <div class="rp-screen" id="rp-screen-result">
+      <div class="rp-result">
+        <div class="rp-result-circle" id="rp-result-circle"></div>
+        <div class="rp-result-title"  id="rp-result-title"></div>
+        <div class="rp-result-sub"    id="rp-result-sub"></div>
+        <div class="rp-result-id"     id="rp-result-id"></div>
+        <button class="rp-result-btn" id="rp-result-btn" onclick="handleResultClose()"></button>
+      </div>
+    </div>
+
+    <div class="rp-footer">
+      <span class="rp-footer-item">&#x1F512; Secured by Razorpay</span>
+      <span class="rp-footer-item">&#x1F6E1;&#xFE0F; 256-bit SSL</span>
+      <span class="rp-footer-item">&#x1F3E6; PCI DSS Compliant</span>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="common.js"></script>
+<script>
+const USER_ID = getOrCreateUserId();
+let _pendingOrderId   = null;
+let _pendingPaymentId = null;
+let _pendingTotal     = 0;
+let _simResult        = 'success';
+
+async function loadCart() {
+  const c = document.getElementById('cart-content');
+  c.innerHTML = '<div class="spinner"></div>';
+  const data = await apiFetch(`/cart/${USER_ID}`);
+  if (!data) return;
+  const items = data.items || [];
+  document.getElementById('cart-sub').textContent =
+    items.length ? `${items.length} item${items.length > 1 ? 's' : ''} in your cart` : 'Your cart is empty';
+  if (!items.length) {
+    c.innerHTML = `<div class="empty"><div class="empty-icon">&#x1F6D2;</div>
+      <div class="empty-text">Your cart is empty.<br><a href="index.html">Browse games &rarr;</a></div></div>`;
+    return;
+  }
+  const total = items.reduce((s,i) => s + parseFloat(i.price) * (i.quantity||1), 0);
+  _pendingTotal = total;
+  c.innerHTML = `
+    <div class="cart-list">
+      ${items.map(i => `
+        <div class="cart-item" id="cart-item-${i.game_id}">
+          <div class="cart-item-info">
+            <div class="cart-item-title">${i.title}</div>
+            <div class="cart-item-price">$${parseFloat(i.price).toFixed(2)} x ${i.quantity||1}</div>
+          </div>
+          <div class="cart-item-total">$${(parseFloat(i.price)*(i.quantity||1)).toFixed(2)}</div>
+          <button type="button" class="remove-btn"
+            onclick="removeItem('${i.game_id}','${i.title.replace(/'/g,"\\'")}',this)">x</button>
+        </div>`).join('')}
+    </div>
+    <div class="cart-footer">
+      <div class="cart-total">
+        <span>Total</span>
+        <span class="cart-total-val">$${total.toFixed(2)}</span>
+      </div>
+      <button type="button" class="checkout-btn" id="checkout-btn" onclick="openOrderPopup()">
+        &#x1F4B3; Place Order
+      </button>
+    </div>`;
+  buildEmiOptions(total);
+}
+
+async function removeItem(gameId, title, btnEl) {
+  btnEl.disabled = true;
+  const data = await apiFetch(`/cart/${USER_ID}/items/${gameId}`, { method:'DELETE' });
+  if (data) { toast(`"${title}" removed`); loadCart(); }
+  else { toast('Failed to remove item','error'); btnEl.disabled = false; }
+}
+
+async function openOrderPopup() {
+  const btn = document.getElementById('checkout-btn');
+  btn.disabled = true; btn.textContent = 'Loading...';
+  const data = await apiFetch(`/cart/${USER_ID}`);
+  if (!data) { btn.disabled=false; btn.innerHTML='&#x1F4B3; Place Order'; return; }
+  const items = data.items || [];
+  const total = items.reduce((s,i)=>s+parseFloat(i.price)*(i.quantity||1),0);
+  _pendingTotal = total;
+  document.getElementById('popup-items-list').innerHTML = items.map(i=>`
+    <div class="popup-item-row">
+      <span><span class="popup-item-name">${i.title}</span>
+      <span class="popup-item-qty">x${i.quantity||1}</span></span>
+      <span class="popup-item-price">$${(parseFloat(i.price)*(i.quantity||1)).toFixed(2)}</span>
+    </div>`).join('');
+  document.getElementById('popup-total-val').textContent = `$${total.toFixed(2)}`;
+  btn.disabled=false; btn.innerHTML='&#x1F4B3; Place Order';
+  document.getElementById('order-popup-overlay').classList.add('open');
+}
+
+function closeOrderPopup() {
+  document.getElementById('order-popup-overlay').classList.remove('open');
+}
+
+async function proceedToRazorpay() {
+  const btn = document.getElementById('popup-pay-btn');
+  btn.disabled=true; btn.textContent='Please wait...';
+  try {
+    const res = await fetch(`${CONFIG.API_URL}/payment/initiate`,{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({user_id:USER_ID})
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      toast(data.error||'Could not initiate payment','error');
+      if (data.details) data.details.forEach(d=>toast(d,'error'));
+      btn.disabled=false; btn.textContent='&#x1F4B3; Proceed to Pay'; return;
+    }
+    _pendingOrderId   = data.order_id;
+    _pendingPaymentId = data.payment_id;
+    closeOrderPopup();
+    openRazorpay(data.total);
+  } catch(e) {
+    toast('Network error: '+e.message,'error');
+  } finally {
+    btn.disabled=false; btn.textContent='&#x1F4B3; Proceed to Pay';
+  }
+}
+
+function openRazorpay(total) {
+  document.getElementById('rp-amount-val').textContent = `$${parseFloat(total).toFixed(2)}`;
+  showRpBodyWrap();
+  switchMethod('upi', document.querySelector('.rp-method-item'));
+  document.getElementById('rp-overlay').classList.add('open');
+}
+
+function switchMethod(method, el) {
+  document.querySelectorAll('.rp-method-item').forEach(i=>i.classList.remove('active'));
+  if (el) el.classList.add('active');
+  document.querySelectorAll('.rp-method-panel').forEach(p=>p.style.display='none');
+  const panel = document.getElementById(`panel-${method}`);
+  if (panel) panel.style.display='block';
+  _simResult='success';
+  document.querySelectorAll('.rp-sim-opt').forEach(b=>{
+    b.classList.remove('selected');
+    if(b.classList.contains('success')) b.classList.add('selected');
+  });
+}
+
+function selectUpiApp(app, el) {
+  document.querySelectorAll('.rp-upi-app').forEach(a=>a.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('upi-id-group').style.display = (app==='bhim') ? 'block':'none';
+  document.getElementById('upi-pay-btn').disabled = false;
+}
+
+function selectSavedCard(el) {
+  document.querySelectorAll('.rp-saved-card').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function selectBank(el) {
+  document.querySelectorAll('.rp-bank-item').forEach(b=>b.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('nb-pay-btn').disabled=false;
+}
+
+function selectWallet(el) {
+  document.querySelectorAll('.rp-wallet-item').forEach(w=>w.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('wallet-pay-btn').disabled=false;
+}
+
+function setSimResult(result, el) {
+  _simResult = result;
+  const activePanel = document.querySelector('.rp-method-panel[style="display: block;"]')
+                   || document.getElementById('panel-upi');
+  activePanel.querySelectorAll('.rp-sim-opt').forEach(b=>b.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function buildEmiOptions(total) {
+  const container = document.getElementById('emi-options');
+  if (!container) return;
+  const plans=[3,6,9,12]; const rate=0.013;
+  container.innerHTML = plans.map(months=>{
+    const monthly=((total*rate*Math.pow(1+rate,months))/(Math.pow(1+rate,months)-1)).toFixed(2);
+    return `<div class="rp-bank-item" style="margin-bottom:8px;width:100%;box-sizing:border-box;"
+              onclick="selectEmi(this,${months})">
+              <span class="rp-bank-icon">&#x1F4C5;</span>
+              <span><strong>${months} months</strong> - $${monthly}/mo
+                <span style="font-size:0.72rem;color:#888;display:block;">Total: $${(monthly*months).toFixed(2)}</span>
+              </span></div>`;
+  }).join('');
+}
+
+function selectEmi(el, months) {
+  document.querySelectorAll('#emi-options .rp-bank-item').forEach(b=>b.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('emi-pay-btn').disabled=false;
+}
+
+function formatCardNum(input) {
+  let v=input.value.replace(/\D/g,'').substring(0,16);
+  input.value=v.replace(/(.{4})/g,'$1  ').trim();
+}
+function formatExpiry(input) {
+  let v=input.value.replace(/\D/g,'').substring(0,4);
+  if(v.length>=2) v=v.slice(0,2)+' / '+v.slice(2);
+  input.value=v;
+}
+
+function showRpBodyWrap() {
+  document.getElementById('rp-body-wrap').classList.remove('hide');
+  document.getElementById('rp-screen-processing').classList.remove('active');
+  document.getElementById('rp-screen-result').classList.remove('active');
+}
+function showRpProcessing(methodLabel) {
+  document.getElementById('rp-body-wrap').classList.add('hide');
+  document.getElementById('rp-screen-processing').classList.add('active');
+  document.getElementById('rp-screen-result').classList.remove('active');
+  document.getElementById('rp-processing-method').textContent = `via ${methodLabel}`;
+}
+function showRpResult() {
+  document.getElementById('rp-body-wrap').classList.add('hide');
+  document.getElementById('rp-screen-processing').classList.remove('active');
+  document.getElementById('rp-screen-result').classList.add('active');
+}
+
+async function triggerPayment(methodLabel) {
+  showRpProcessing(methodLabel);
+  await delay(_simResult==='success' ? 2200 : 1500);
+  if (_simResult==='success') await doConfirmPayment(methodLabel);
+  else await doFailPayment(methodLabel);
+}
+
+async function doConfirmPayment(methodLabel) {
+  try {
+    const res = await fetch(`${CONFIG.API_URL}/payment/confirm`,{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({order_id:_pendingOrderId,payment_id:_pendingPaymentId,user_id:USER_ID})
+    });
+    const data = await res.json();
+    showRpResult();
+    if (res.ok) {
+      const shortId=(_pendingOrderId||'').slice(0,8).toUpperCase();
+      setResult(true,'Payment Successful!',
+        'Your order has been placed and is being processed.',
+        `Order #${shortId} via ${methodLabel}`);
+    } else {
+      setResult(false,'Payment Failed', data.error||'Payment could not be processed.','No charges made.');
+    }
+  } catch(e) {
+    showRpResult();
+    setResult(false,'Payment Failed','Network error: '+e.message,'');
+  }
+}
+
+async function doFailPayment(methodLabel) {
+  try {
+    await fetch(`${CONFIG.API_URL}/payment/fail`,{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({order_id:_pendingOrderId})
+    });
+  } catch(e) { console.warn('fail_payment:',e); }
+  showRpResult();
+  setResult(false,'Payment Declined',
+    `Your ${methodLabel} payment was declined by the bank.`,
+    'No charges made. Your cart is still saved.');
+}
+
+function setResult(success, title, sub, idText) {
+  const circle = document.getElementById('rp-result-circle');
+  circle.className=`rp-result-circle ${success?'success':'failure'}`;
+  circle.textContent = success ? '\u2705' : '\u274C';
+  document.getElementById('rp-result-title').textContent = title;
+  document.getElementById('rp-result-sub').textContent   = sub;
+  document.getElementById('rp-result-id').textContent    = idText;
+  const btn = document.getElementById('rp-result-btn');
+  btn.textContent = success ? 'View My Orders' : 'Back to Cart';
+  btn.className   = `rp-result-btn ${success?'success':'failure'}`;
+}
+
+function handleResultClose() {
+  const btn = document.getElementById('rp-result-btn');
+  if (btn.classList.contains('success')) {
+    window.location.href='orders.html';
+  } else {
+    document.getElementById('rp-overlay').classList.remove('open');
+    showRpBodyWrap();
+    loadCart();
+  }
+}
+
+function delay(ms) { return new Promise(r=>setTimeout(r,ms)); }
+loadCart();
+</script>
+</body>
+</html>

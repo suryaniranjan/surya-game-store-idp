@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GameVault — Access</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@300;400;500;600;700&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <script src="config.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --ferrari-red:    #DC0000;
+      --ferrari-dark:   #8B0000;
+      --carbon:         #0D0D0D;
+      --graphite:       #1A1A1A;
+      --graphite-light: #252525;
+      --silver:         #B3B3B3;
+      --white:          #FFFFFF;
+      --glow:           rgba(220,0,0,0.6);
+    }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      font-family: 'Rajdhani', sans-serif;
+      background: var(--carbon);
+      color: var(--white);
+    }
+
+    /* ── TRACK BACKGROUND ── */
+    .track-bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    /* Animated racing track SVG lines */
+    .track-lines {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0.18;
+    }
+
+    /* Carbon fibre texture overlay */
+    .track-bg::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        repeating-linear-gradient(
+          0deg,
+          transparent,
+          transparent 2px,
+          rgba(255,255,255,0.015) 2px,
+          rgba(255,255,255,0.015) 4px
+        ),
+        repeating-linear-gradient(
+          90deg,
+          transparent,
+          transparent 2px,
+          rgba(255,255,255,0.015) 2px,
+          rgba(255,255,255,0.015) 4px
+        );
+      z-index: 1;
+    }
+
+    /* Red speed streak */
+    .speed-streak {
+      position: absolute;
+      top: 0; bottom: 0;
+      width: 3px;
+      background: linear-gradient(180deg, transparent, var(--ferrari-red), transparent);
+      animation: streak 3s ease-in-out infinite;
+      opacity: 0;
+    }
+    .speed-streak:nth-child(1) { left: 15%; animation-delay: 0s;    animation-duration: 2.8s; }
+    .speed-streak:nth-child(2) { left: 35%; animation-delay: 0.7s;  animation-duration: 3.2s; }
+    .speed-streak:nth-child(3) { left: 60%; animation-delay: 1.4s;  animation-duration: 2.5s; }
+    .speed-streak:nth-child(4) { left: 80%; animation-delay: 2.1s;  animation-duration: 3.8s; }
+
+    @keyframes streak {
+      0%   { opacity: 0; transform: scaleY(0) translateY(-100%); }
+      20%  { opacity: 0.7; }
+      80%  { opacity: 0.4; }
+      100% { opacity: 0; transform: scaleY(1) translateY(100%); }
+    }
+
+    /* Bottom red horizon glow */
+    .horizon-glow {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 40%;
+      background: radial-gradient(ellipse at 50% 100%, rgba(220,0,0,0.25) 0%, transparent 70%);
+      z-index: 2;
+    }
+
+    /* ── LAYOUT ── */
+    .layout {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      height: 100vh;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    /* ── GLASS CARD ── */
+    .login-card {
+      width: 100%;
+      max-width: 440px;
+      background: rgba(13,13,13,0.85);
+      border: 1px solid rgba(220,0,0,0.3);
+      border-radius: 4px;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      box-shadow:
+        0 0 0 1px rgba(220,0,0,0.1),
+        0 0 40px rgba(220,0,0,0.15),
+        0 32px 64px rgba(0,0,0,0.8),
+        inset 0 1px 0 rgba(255,255,255,0.05);
+      animation: cardIn 0.6s cubic-bezier(0.22,1,0.36,1) forwards;
+      opacity: 0;
+    }
+
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(32px) scale(0.97); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    /* ── CARD HEADER ── */
+    .card-header {
+      padding: 32px 36px 24px;
+      border-bottom: 1px solid rgba(220,0,0,0.2);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card-header::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--ferrari-red), transparent);
+      animation: headerLine 2s ease-in-out infinite;
+    }
+
+    @keyframes headerLine {
+      0%, 100% { opacity: 0.5; }
+      50%       { opacity: 1; }
+    }
+
+    .brand-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    /* Ferrari prancing horse SVG */
+    .ferrari-horse {
+      width: 36px;
+      height: 36px;
+      flex-shrink: 0;
+      filter: drop-shadow(0 0 8px rgba(220,0,0,0.8));
+      animation: horsePulse 2s ease-in-out infinite;
+    }
+
+    @keyframes horsePulse {
+      0%, 100% { filter: drop-shadow(0 0 6px rgba(220,0,0,0.7)); }
+      50%       { filter: drop-shadow(0 0 14px rgba(220,0,0,1)); }
+    }
+
+    .brand-text { flex: 1; }
+
+    .brand-name {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.6rem;
+      letter-spacing: 0.12em;
+      color: var(--white);
+      line-height: 1;
+    }
+
+    .brand-name span { color: var(--ferrari-red); }
+
+    .brand-sub {
+      font-size: 0.68rem;
+      letter-spacing: 0.25em;
+      color: var(--silver);
+      text-transform: uppercase;
+      opacity: 0.7;
+      margin-top: 2px;
+    }
+
+    /* Telemetry dots */
+    .telemetry-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .t-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--ferrari-red);
+      animation: tBlink 1.4s ease-in-out infinite;
+    }
+    .t-dot:nth-child(2) { animation-delay: 0.3s; opacity: 0.6; background: var(--silver); }
+    .t-dot:nth-child(3) { animation-delay: 0.6s; opacity: 0.4; background: var(--silver); }
+
+    @keyframes tBlink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.2; }
+    }
+
+    .t-label {
+      font-size: 0.65rem;
+      letter-spacing: 0.2em;
+      color: var(--silver);
+      opacity: 0.5;
+      text-transform: uppercase;
+      margin-left: 4px;
+    }
+
+    /* ── CARD BODY ── */
+    .card-body {
+      padding: 28px 36px 36px;
+    }
+
+    .section-label {
+      font-size: 0.62rem;
+      letter-spacing: 0.3em;
+      color: var(--ferrari-red);
+      text-transform: uppercase;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, rgba(220,0,0,0.4), transparent);
+    }
+
+    /* ── INPUTS ── */
+    .field {
+      margin-bottom: 16px;
+      position: relative;
+    }
+
+    .field-label {
+      display: block;
+      font-size: 0.65rem;
+      letter-spacing: 0.2em;
+      color: var(--silver);
+      text-transform: uppercase;
+      margin-bottom: 7px;
+      opacity: 0.7;
+    }
+
+    .field-input-wrap {
+      position: relative;
+    }
+
+    .field-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.85rem;
+      opacity: 0.4;
+      pointer-events: none;
+    }
+
+    .field input {
+      width: 100%;
+      padding: 13px 14px 13px 40px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 3px;
+      color: var(--white);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.88rem;
+      letter-spacing: 0.05em;
+      transition: all 0.2s;
+      outline: none;
+    }
+
+    .field input:focus {
+      border-color: var(--ferrari-red);
+      background: rgba(220,0,0,0.05);
+      box-shadow: 0 0 0 3px rgba(220,0,0,0.1), 0 0 20px rgba(220,0,0,0.1);
+    }
+
+    .field input::placeholder {
+      color: rgba(255,255,255,0.15);
+      font-family: 'Rajdhani', sans-serif;
+      letter-spacing: 0.05em;
+    }
+
+    /* ── ERROR ── */
+    .error-msg {
+      display: none;
+      background: rgba(220,0,0,0.1);
+      border: 1px solid rgba(220,0,0,0.3);
+      border-left: 3px solid var(--ferrari-red);
+      border-radius: 3px;
+      padding: 10px 14px;
+      font-size: 0.78rem;
+      color: #ff6b6b;
+      margin-bottom: 16px;
+      letter-spacing: 0.03em;
+      animation: errIn 0.2s ease;
+    }
+
+    .error-msg.visible { display: block; }
+
+    @keyframes errIn {
+      from { opacity: 0; transform: translateX(-6px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    /* ── LOGIN BUTTON ── */
+    .login-btn {
+      width: 100%;
+      padding: 15px;
+      background: var(--ferrari-red);
+      border: none;
+      border-radius: 3px;
+      color: var(--white);
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.1rem;
+      letter-spacing: 0.2em;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.2s;
+      box-shadow: 0 4px 20px rgba(220,0,0,0.4);
+      margin-top: 8px;
+    }
+
+    .login-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 60%);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .login-btn:hover::before { opacity: 1; }
+
+    .login-btn:hover {
+      background: #f50000;
+      box-shadow: 0 6px 28px rgba(220,0,0,0.6);
+      transform: translateY(-1px);
+    }
+
+    .login-btn:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 12px rgba(220,0,0,0.4);
+    }
+
+    .login-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-spinner {
+      display: none;
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      margin: 0 auto;
+    }
+
+    .login-btn.loading .btn-text   { display: none; }
+    .login-btn.loading .btn-spinner { display: block; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── CREDENTIALS HINT ── */
+    .creds-hint {
+      margin-top: 24px;
+      padding: 14px;
+      background: rgba(255,255,255,0.025);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 3px;
+    }
+
+    .creds-hint-title {
+      font-size: 0.6rem;
+      letter-spacing: 0.25em;
+      color: var(--ferrari-red);
+      text-transform: uppercase;
+      margin-bottom: 10px;
+      opacity: 0.8;
+    }
+
+    .creds-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+    }
+
+    .cred-item {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 3px;
+      padding: 8px 10px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .cred-item:hover {
+      background: rgba(220,0,0,0.08);
+      border-color: rgba(220,0,0,0.3);
+    }
+
+    .cred-role {
+      font-size: 0.6rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .cred-role.admin { color: var(--ferrari-red); }
+    .cred-role.user  { color: #7c6cff; }
+
+    .cred-user {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--white);
+    }
+
+    .cred-pass {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.68rem;
+      color: var(--silver);
+      opacity: 0.6;
+    }
+
+    /* ── FOOTER LINE ── */
+    .card-footer {
+      padding: 12px 36px;
+      border-top: 1px solid rgba(255,255,255,0.04);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .footer-secure {
+      font-size: 0.62rem;
+      letter-spacing: 0.15em;
+      color: var(--silver);
+      opacity: 0.35;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .footer-version {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.6rem;
+      color: var(--silver);
+      opacity: 0.25;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 480px) {
+      .login-card       { border-radius: 0; max-width: 100%; }
+      .card-header,
+      .card-body        { padding-left: 24px; padding-right: 24px; }
+      .card-footer      { padding-left: 24px; padding-right: 24px; }
+      .creds-grid       { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Background -->
+<div class="track-bg">
+  <div class="speed-streak"></div>
+  <div class="speed-streak"></div>
+  <div class="speed-streak"></div>
+  <div class="speed-streak"></div>
+  <div class="horizon-glow"></div>
+  <svg class="track-lines" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice"
+       xmlns="http://www.w3.org/2000/svg">
+    <!-- Perspective track lines converging at vanishing point -->
+    <defs>
+      <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="#DC0000" stop-opacity="0"/>
+        <stop offset="40%"  stop-color="#DC0000" stop-opacity="1"/>
+        <stop offset="100%" stop-color="#DC0000" stop-opacity="0.2"/>
+      </linearGradient>
+    </defs>
+    <line x1="720" y1="300" x2="0"    y2="900" stroke="url(#lineGrad)" stroke-width="1"/>
+    <line x1="720" y1="300" x2="200"  y2="900" stroke="url(#lineGrad)" stroke-width="1"/>
+    <line x1="720" y1="300" x2="400"  y2="900" stroke="url(#lineGrad)" stroke-width="1"/>
+    <line x1="720" y1="300" x2="600"  y2="900" stroke="url(#lineGrad)" stroke-width="1"/>
+    <line x1="720" y1="300" x2="720"  y2="900" stroke="url(#lineGrad)" stroke-width="1.5"/>
+    <line x1="720" y1="300" x2="840"  y2="900" stroke="url(#lineGrad)" stroke-width="1"/>
+    <line x1="720" y1="300" x2="1040" y2="900" stroke="url(#lineGrad)" stroke-width="1"/>
+    <line x1="720" y1="300" x2="1240" y2="900" stroke="url(#lineGrad)" stroke-width="1"/>
+    <line x1="720" y1="300" x2="1440" y2="900" stroke="url(#lineGrad)" stroke-width="1"/>
+    <!-- Horizontal depth lines -->
+    <line x1="420" y1="550" x2="1020" y2="550" stroke="#DC0000" stroke-width="0.5" stroke-opacity="0.4"/>
+    <line x1="280" y1="650" x2="1160" y2="650" stroke="#DC0000" stroke-width="0.5" stroke-opacity="0.3"/>
+    <line x1="140" y1="750" x2="1300" y2="750" stroke="#DC0000" stroke-width="0.5" stroke-opacity="0.2"/>
+  </svg>
+</div>
+
+<!-- Login card -->
+<div class="layout">
+  <div class="login-card">
+
+    <div class="card-header">
+      <div class="brand-row">
+        <!-- Prancing horse SVG -->
+        <svg class="ferrari-horse" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M50 10 C45 10 38 14 36 20 C34 26 36 30 34 34
+                   C32 38 26 40 24 46 C22 52 26 58 30 60
+                   C28 64 24 66 22 70 C20 74 22 80 26 82
+                   C30 84 36 82 40 80 C44 78 46 74 50 72
+                   C54 74 56 78 60 80 C64 82 70 84 74 82
+                   C78 80 80 74 78 70 C76 66 72 64 70 60
+                   C74 58 78 52 76 46 C74 40 68 38 66 34
+                   C64 30 66 26 64 20 C62 14 55 10 50 10Z"
+                fill="#DC0000"/>
+          <ellipse cx="50" cy="52" rx="12" ry="8" fill="#8B0000" opacity="0.5"/>
+          <circle cx="43" cy="38" r="3" fill="#FFD700" opacity="0.8"/>
+          <circle cx="57" cy="38" r="3" fill="#FFD700" opacity="0.8"/>
+        </svg>
+        <div class="brand-text">
+          <div class="brand-name">Game<span>Vault</span></div>
+          <div class="brand-sub">Race Control Access</div>
+        </div>
+      </div>
+      <div class="telemetry-row">
+        <div class="t-dot"></div>
+        <div class="t-dot"></div>
+        <div class="t-dot"></div>
+        <span class="t-label">System Online</span>
+      </div>
+    </div>
+
+    <div class="card-body">
+      <div class="section-label">Driver Authentication</div>
+
+      <div class="error-msg" id="error-msg">⚠ &nbsp;Invalid credentials — access denied</div>
+
+      <div class="field">
+        <label class="field-label" for="username">Driver ID</label>
+        <div class="field-input-wrap">
+          <span class="field-icon">👤</span>
+          <input type="text" id="username" placeholder="Enter username" autocomplete="username"
+                 onkeydown="if(event.key==='Enter') attemptLogin()">
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-label" for="password">Access Code</label>
+        <div class="field-input-wrap">
+          <span class="field-icon">🔑</span>
+          <input type="password" id="password" placeholder="Enter password" autocomplete="current-password"
+                 onkeydown="if(event.key==='Enter') attemptLogin()">
+        </div>
+      </div>
+
+      <button type="button" class="login-btn" id="login-btn" onclick="attemptLogin()">
+        <span class="btn-text">Engage</span>
+        <span class="btn-spinner"></span>
+      </button>
+
+      <!-- Quick-fill credential hints -->
+      <div class="creds-hint">
+        <div class="creds-hint-title">⚡ Quick Access — click to autofill</div>
+        <div class="creds-grid">
+          <div class="cred-item" onclick="fillCreds('user','user@123')">
+            <div class="cred-role user">User</div>
+            <div class="cred-user">user</div>
+            <div class="cred-pass">user</div>
+          </div>
+          <div class="cred-item" onclick="fillCreds('surya','surya@123')">
+            <div class="cred-role user">Dev</div>
+            <div class="cred-user">surya</div>
+            <div class="cred-pass">surya@123</div>
+          </div>
+          <div class="cred-item" onclick="fillCreds('admin','admin123')">
+            <div class="cred-role admin">Admin</div>
+            <div class="cred-user">admin</div>
+            <div class="cred-pass">admin123</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-footer">
+      <span class="footer-secure">🔒 Encrypted Session</span>
+      <span class="footer-version">v2.0.0</span>
+    </div>
+
+  </div>
+</div>
+
+<script src="auth.js"></script>
+<script>
+  // If already logged in, redirect immediately
+  (function() {
+    const role = localStorage.getItem("gv_role");
+    if (role === "admin") { window.location.href = "admin.html"; return; }
+    if (role === "user")  { window.location.href = "index.html"; return; }
+  })();
+
+  function fillCreds(u, p) {
+    document.getElementById("username").value = u;
+    document.getElementById("password").value = p;
+    document.getElementById("error-msg").classList.remove("visible");
+    document.getElementById("username").focus();
+  }
+
+  async function attemptLogin() {
+    const username = document.getElementById("username").value.trim();
+    const password = document.getElementById("password").value;
+    const btn      = document.getElementById("login-btn");
+    const err      = document.getElementById("error-msg");
+
+    err.classList.remove("visible");
+
+    if (!username || !password) {
+      err.textContent = "⚠  Please enter both Driver ID and Access Code";
+      err.classList.add("visible");
+      return;
+    }
+
+    btn.classList.add("loading");
+    btn.disabled = true;
+
+    // Simulate auth latency for realism
+    await new Promise(r => setTimeout(r, 900));
+
+    const user = authLogin(username, password);
+
+    if (!user) {
+      btn.classList.remove("loading");
+      btn.disabled = false;
+      err.textContent = "⚠  Invalid credentials — access denied";
+      err.classList.add("visible");
+      // Shake animation
+      const card = document.querySelector(".login-card");
+      card.style.animation = "none";
+      card.style.transform = "translateX(-8px)";
+      setTimeout(() => { card.style.transform = "translateX(8px)"; }, 80);
+      setTimeout(() => { card.style.transform = "translateX(-5px)"; }, 160);
+      setTimeout(() => { card.style.transform = "translateX(0)"; card.style.transition = "transform 0.15s ease"; }, 240);
+      return;
+    }
+
+    // Success — redirect by role
+    btn.textContent = "✓ ACCESS GRANTED";
+    await new Promise(r => setTimeout(r, 400));
+
+    if (user.role === "admin") {
+      window.location.href = "admin.html";
+    } else {
+      window.location.href = "index.html";
+    }
+  }
+</script>
+</body>
+</html>
