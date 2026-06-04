@@ -367,8 +367,8 @@
       <span class="popup-total-val" id="popup-total-val">$0.00</span>
     </div>
     <div class="popup-actions">
-      <button class="popup-cancel-btn" onclick="closeOrderPopup()">Cancel</button>
-      <button class="popup-pay-btn" id="popup-pay-btn" onclick="proceedToRazorpay()">
+      <button type="button" class="popup-cancel-btn" onclick="closeOrderPopup()">Cancel</button>
+      <button type="button" class="popup-pay-btn" id="popup-pay-btn" onclick="proceedToRazorpay()">
         &#x1F4B3; Proceed to Pay
       </button>
     </div>
@@ -435,17 +435,17 @@
           </div>
           <div class="rp-form-group" id="upi-id-group" style="display:none">
             <label class="rp-form-label">UPI ID</label>
-            <input class="rp-form-input" id="upi-id-input" placeholder="yourname@upi">
+            <input type="text" class="rp-form-input" id="upi-id-input" placeholder="yourname@upi">
           </div>
           <div class="rp-sim-box">
             <div class="rp-sim-box-title">&#x26A0;&#xFE0F; Simulate Result</div>
             <div class="rp-sim-options">
-              <button class="rp-sim-opt success selected" onclick="setSimResult('success',this)">&#x2705; Success</button>
-              <button class="rp-sim-opt failure" onclick="setSimResult('failure',this)">&#x274C; Failure</button>
+              <button type="button" class="rp-sim-opt success selected" onclick="setSimResult('success',this)">&#x2705; Success</button>
+              <button type="button" class="rp-sim-opt failure" onclick="setSimResult('failure',this)">&#x274C; Failure</button>
             </div>
           </div>
           <div class="rp-pay-action">
-            <button class="rp-pay-btn" id="upi-pay-btn" onclick="triggerPayment('UPI')" disabled>Pay Now</button>
+            <button type="button" class="rp-pay-btn" id="upi-pay-btn" onclick="triggerPayment('UPI')" disabled>Pay Now</button>
             <div class="rp-secure-note">&#x1F512; 256-bit SSL encrypted</div>
           </div>
         </div>
@@ -475,31 +475,31 @@
           <div style="font-size:0.72rem;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.05em;margin:14px 0 8px;">Or Add New Card</div>
           <div class="rp-form-group">
             <label class="rp-form-label">Card Number</label>
-            <input class="rp-form-input" placeholder="1234  5678  9012  3456" maxlength="19" oninput="formatCardNum(this)">
+            <input type="text" class="rp-form-input" placeholder="1234  5678  9012  3456" maxlength="19" oninput="formatCardNum(this)">
           </div>
           <div class="rp-form-group">
             <label class="rp-form-label">Cardholder Name</label>
-            <input class="rp-form-input" placeholder="Name on card">
+            <input type="text" class="rp-form-input" placeholder="Name on card">
           </div>
           <div class="rp-form-row">
             <div class="rp-form-group">
               <label class="rp-form-label">Expiry</label>
-              <input class="rp-form-input" placeholder="MM / YY" maxlength="7" oninput="formatExpiry(this)">
+              <input type="text" class="rp-form-input" placeholder="MM / YY" maxlength="7" oninput="formatExpiry(this)">
             </div>
             <div class="rp-form-group">
               <label class="rp-form-label">CVV</label>
-              <input class="rp-form-input" placeholder="..." maxlength="3" type="password">
+              <input type="password" class="rp-form-input" placeholder="..." maxlength="3" autocomplete="cc-csc">
             </div>
           </div>
           <div class="rp-sim-box">
             <div class="rp-sim-box-title">&#x26A0;&#xFE0F; Simulate Result</div>
             <div class="rp-sim-options">
-              <button class="rp-sim-opt success selected" onclick="setSimResult('success',this)">&#x2705; Success</button>
-              <button class="rp-sim-opt failure" onclick="setSimResult('failure',this)">&#x274C; Failure</button>
+              <button type="button" class="rp-sim-opt success selected" onclick="setSimResult('success',this)">&#x2705; Success</button>
+              <button type="button" class="rp-sim-opt failure" onclick="setSimResult('failure',this)">&#x274C; Failure</button>
             </div>
           </div>
           <div class="rp-pay-action">
-            <button class="rp-pay-btn" onclick="triggerPayment('Debit/Credit Card')">Pay Now</button>
+            <button type="button" class="rp-pay-btn" onclick="triggerPayment('Debit/Credit Card')">Pay Now</button>
             <div class="rp-secure-note">&#x1F512; 256-bit SSL encrypted</div>
           </div>
         </div>
@@ -521,12 +521,12 @@
           <div class="rp-sim-box">
             <div class="rp-sim-box-title">&#x26A0;&#xFE0F; Simulate Result</div>
             <div class="rp-sim-options">
-              <button class="rp-sim-opt success selected" onclick="setSimResult('success',this)">&#x2705; Success</button>
-              <button class="rp-sim-opt failure" onclick="setSimResult('failure',this)">&#x274C; Failure</button>
+              <button type="button" class="rp-sim-opt success selected" onclick="setSimResult('success',this)">&#x2705; Success</button>
+              <button type="button" class="rp-sim-opt failure" onclick="setSimResult('failure',this)">&#x274C; Failure</button>
             </div>
           </div>
           <div class="rp-pay-action">
-            <button class="rp-pay-btn" id="nb-pay-btn" onclick="triggerPayment('Net Banking')" disabled>Pay Now</button>
+            <button type="button" class="rp-pay-btn" id="nb-pay-btn" onclick="triggerPayment('Net Banking')" disabled>Pay Now</button>
             <div class="rp-secure-note">&#x1F512; 256-bit SSL encrypted</div>
           </div>
         </div>
@@ -556,12 +556,12 @@
           <div class="rp-sim-box">
             <div class="rp-sim-box-title">&#x26A0;&#xFE0F; Simulate Result</div>
             <div class="rp-sim-options">
-              <button class="rp-sim-opt success selected" onclick="setSimResult('success',this)">&#x2705; Success</button>
-              <button class="rp-sim-opt failure" onclick="setSimResult('failure',this)">&#x274C; Failure</button>
+              <button type="button" class="rp-sim-opt success selected" onclick="setSimResult('success',this)">&#x2705; Success</button>
+              <button type="button" class="rp-sim-opt failure" onclick="setSimResult('failure',this)">&#x274C; Failure</button>
             </div>
           </div>
           <div class="rp-pay-action">
-            <button class="rp-pay-btn" id="wallet-pay-btn" onclick="triggerPayment('Wallet')" disabled>Pay Now</button>
+            <button type="button" class="rp-pay-btn" id="wallet-pay-btn" onclick="triggerPayment('Wallet')" disabled>Pay Now</button>
             <div class="rp-secure-note">&#x1F512; 256-bit SSL encrypted</div>
           </div>
         </div>
@@ -575,12 +575,12 @@
           <div class="rp-sim-box">
             <div class="rp-sim-box-title">&#x26A0;&#xFE0F; Simulate Result</div>
             <div class="rp-sim-options">
-              <button class="rp-sim-opt success selected" onclick="setSimResult('success',this)">&#x2705; Success</button>
-              <button class="rp-sim-opt failure" onclick="setSimResult('failure',this)">&#x274C; Failure</button>
+              <button type="button" class="rp-sim-opt success selected" onclick="setSimResult('success',this)">&#x2705; Success</button>
+              <button type="button" class="rp-sim-opt failure" onclick="setSimResult('failure',this)">&#x274C; Failure</button>
             </div>
           </div>
           <div class="rp-pay-action">
-            <button class="rp-pay-btn" id="emi-pay-btn" onclick="triggerPayment('EMI')" disabled>Pay Now</button>
+            <button type="button" class="rp-pay-btn" id="emi-pay-btn" onclick="triggerPayment('EMI')" disabled>Pay Now</button>
             <div class="rp-secure-note">&#x1F512; 256-bit SSL encrypted</div>
           </div>
         </div>
@@ -605,7 +605,7 @@
         <div class="rp-result-title"  id="rp-result-title"></div>
         <div class="rp-result-sub"    id="rp-result-sub"></div>
         <div class="rp-result-id"     id="rp-result-id"></div>
-        <button class="rp-result-btn" id="rp-result-btn" onclick="handleResultClose()"></button>
+        <button type="button" class="rp-result-btn" id="rp-result-btn" onclick="handleResultClose()">Continue</button>
       </div>
     </div>
 
@@ -651,7 +651,7 @@ async function loadCart() {
           </div>
           <div class="cart-item-total">$${(parseFloat(i.price)*(i.quantity||1)).toFixed(2)}</div>
           <button type="button" class="remove-btn"
-            onclick="removeItem('${i.game_id}','${i.title.replace(/'/g,"\\'")}',this)">x</button>
+            onclick="removeItem('${i.game_id}','${i.title.replace(/'/g,"\\'")}',this)">Remove item</button>
         </div>`).join('')}
     </div>
     <div class="cart-footer">
